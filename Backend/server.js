@@ -451,6 +451,31 @@ app.get("/api/users/search/:document", (req, res) => {
     });
 });
 
+app.post("/api/users/check-email", (req, res) => {
+    const { correo } = req.body;
+    
+    if (!correo) {
+        return res.status(400).json({ message: "El correo es requerido" });
+    }
+
+    const sql = "SELECT email FROM users WHERE email = ?";
+    db.query(sql, [correo], (err, results) => {
+        if (err) {
+            console.error("Error verificando correo:", err);
+            return res.status(500).json({ message: "Error interno del servidor" });
+        }
+
+        if (results.length > 0) {
+            // El correo existe
+            return res.status(200).json({ message: "Correo encontrado", exists: true });
+        } else {
+            // El correo no existe
+            return res.status(404).json({ message: "El correo ingresado no se encuentra registrado.", exists: false });
+        }
+    });
+});
+
+
 app.put("/api/users/update/:id", async (req, res) => {
     const { id } = req.params;
     const { rol, documento, nombres, apellidos, fechaNacimiento, correo, password } = req.body;

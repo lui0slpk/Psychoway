@@ -22,7 +22,7 @@ function Registro() {
 	// Validaciones
 	const validaciones = {
 		documento: {
-			longitud: form.documento.length >= 9 && form.documento.length < 12,
+			longitud: form.documento.length >= 8 && form.documento.length <= 10,
 		},
 		correo: {
 			tieneArroba: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.correo),
@@ -252,7 +252,7 @@ function Registro() {
 										name="documento"
 										value={form.documento}
 										onChange={handleChange}
-										maxLength={11}
+										maxLength={10}
 										required
 										pattern="\d+"
 										title="Debe contener solo números"

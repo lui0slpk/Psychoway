@@ -155,9 +155,9 @@ function Inicio() {
                                 </div>
 
                                 <div className="mb-3">
-                                    <a href="forgot_password.html" className="text-decoration-none fw-bold text-dark">
+                                    <Link to="/recuperar-password" className="text-decoration-none fw-bold text-dark">
                                         ¿Olvidaste tu contraseña?
-                                    </a>
+                                    </Link>
                                 </div>
 
                                 <div className="d-grid mb-3">
