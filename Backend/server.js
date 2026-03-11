@@ -2,6 +2,8 @@ import express from "express";
 import cors from "cors";
 import mysql from "mysql2";
 import bcrypt from "bcrypt";
+import crypto from "crypto";
+import { transporter, sendPasswordResetEmail } from "./mailer.js";
 
 const app = express();
 app.use(cors());
@@ -578,6 +580,24 @@ const checkObjetivosTable = () => {
 };
 checkObjetivosTable();
 
+// Auto-migración: crear tabla password_resets si no existe
+const createPasswordResetsTable = () => {
+    const sql = `
+        CREATE TABLE IF NOT EXISTS password_resets (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            email VARCHAR(255) NOT NULL,
+            token VARCHAR(255) NOT NULL,
+            expires_at DATETIME NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    `;
+    db.query(sql, (err) => {
+        if (err) console.error("❌ Error creando tabla password_resets:", err.message);
+        else console.log("✅ Tabla password_resets verificada/creada.");
+    });
+};
+createPasswordResetsTable();
+
 // Obtener lista de psicólogos
 app.get("/api/psychologists", (req, res) => {
     const sql = "SELECT id_user, names, last_names FROM users WHERE id_rol = 2";
@@ -679,6 +699,118 @@ app.get("/api/meetings/professional-history/:id", (req, res) => {
             return res.status(500).json({ message: "Error al obtener historial" });
         }
         res.status(200).json(results);
+    });
+});
+
+
+// ==================== PASSWORD RECOVERY ENDPOINTS ====================
+
+// Solicitar recuperación de contraseña (enviar correo)
+app.post("/api/password/forgot", (req, res) => {
+    const { correo } = req.body;
+
+    if (!correo) {
+        return res.status(400).json({ message: "El correo es requerido" });
+    }
+
+    // Buscar usuario por email
+    const sql = "SELECT id_user, email FROM users WHERE email = ?";
+    db.query(sql, [correo], async (err, results) => {
+        if (err) {
+            console.error("Error buscando usuario:", err);
+            return res.status(500).json({ message: "Error interno del servidor" });
+        }
+
+        if (results.length === 0) {
+            return res.status(404).json({ message: "El correo ingresado no se encuentra registrado." });
+        }
+
+        try {
+            // Generar token único
+            const token = crypto.randomBytes(32).toString("hex");
+            const expiresAt = new Date(Date.now() + 3600000); // 1 hora
+
+            // Eliminar tokens anteriores del mismo email
+            db.query("DELETE FROM password_resets WHERE email = ?", [correo], (err) => {
+                if (err) console.error("Error limpiando tokens anteriores:", err);
+            });
+
+            // Guardar token en la BD
+            const insertSql = "INSERT INTO password_resets (email, token, expires_at) VALUES (?, ?, ?)";
+            db.query(insertSql, [correo, token, expiresAt], async (err) => {
+                if (err) {
+                    console.error("Error guardando token:", err);
+                    return res.status(500).json({ message: "Error al generar token de recuperación" });
+                }
+
+                // Enviar correo
+                const resetLink = `http://localhost:5173/reset-password?token=${token}`;
+                try {
+                    await sendPasswordResetEmail(correo, resetLink);
+                    console.log(`📧 Correo de recuperación enviado a: ${correo}`);
+                    res.status(200).json({ message: "Correo de recuperación enviado exitosamente" });
+                } catch (emailErr) {
+                    console.error("Error enviando correo:", emailErr);
+                    res.status(500).json({ message: "Error al enviar el correo de recuperación" });
+                }
+            });
+        } catch (error) {
+            console.error("Error en recuperación:", error);
+            res.status(500).json({ message: "Error interno del servidor" });
+        }
+    });
+});
+
+// Restablecer contraseña con token
+app.post("/api/password/reset", async (req, res) => {
+    const { token, newPassword } = req.body;
+
+    if (!token || !newPassword) {
+        return res.status(400).json({ message: "Token y nueva contraseña son requeridos" });
+    }
+
+    // Buscar token válido (no expirado)
+    const sql = "SELECT * FROM password_resets WHERE token = ? AND expires_at > NOW()";
+    db.query(sql, [token], async (err, results) => {
+        if (err) {
+            console.error("Error buscando token:", err);
+            return res.status(500).json({ message: "Error interno del servidor" });
+        }
+
+        if (results.length === 0) {
+            return res.status(400).json({ message: "El enlace de recuperación es inválido o ha expirado." });
+        }
+
+        const resetRecord = results[0];
+
+        try {
+            // Hashear nueva contraseña
+            const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+            // Actualizar contraseña del usuario
+            const updateSql = "UPDATE users SET password = ?, last_update = NOW() WHERE email = ?";
+            db.query(updateSql, [hashedPassword, resetRecord.email], (err, result) => {
+                if (err) {
+                    console.error("Error actualizando contraseña:", err);
+                    return res.status(500).json({ message: "Error al actualizar la contraseña" });
+                }
+
+                if (result.affectedRows === 0) {
+                    return res.status(404).json({ message: "Usuario no encontrado" });
+                }
+
+                // Eliminar token usado
+                db.query("DELETE FROM password_resets WHERE token = ?", [token], (err) => {
+                    if (err) console.error("Error eliminando token:", err);
+                });
+
+                console.log(`✅ Contraseña actualizada para: ${resetRecord.email}`);
+                res.status(200).json({ message: "Contraseña actualizada exitosamente" });
+            });
+        } catch (error) {
+            console.error("Error hasheando contraseña:", error);
+            res.status(500).json({ message: "Error interno del servidor" });
+        }
     });
 });
 

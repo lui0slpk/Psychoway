@@ -6,6 +6,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Inicio from './pages/Inicio';
 import Registro from './pages/Registro';
 import RecuperarPassword from './pages/RecuperarPassword';
+import ResetPassword from './pages/ResetPassword';
 
 // Páginas de Aprendiz
 import DiarioPage from './pages/aprendiz/DiarioPage';
@@ -35,6 +36,7 @@ function App() {
           <Route path="/" element={<Inicio />} />
           <Route path="/registro" element={<Registro />} />
           <Route path="/recuperar-password" element={<RecuperarPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
 
           {/* Rutas de Aprendiz */}
           <Route 
