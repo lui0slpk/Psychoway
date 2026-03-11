@@ -11,3 +11,22 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+/* Custom Colors for Psychoway */
+.bg-custom-green {
+  background-color: #006940; /* Deep green from image */
+}
+
+.btn-custom-green {
+  background-color: #0d825c;
+  border-color: #0d825c;
+  color: white;
+  font-weight: bold;
+}
+
+.btn-custom-green:hover {
+  background-color: #0a6648;
+  border-color: #0a6648;
+  color: white;
+}
+  
