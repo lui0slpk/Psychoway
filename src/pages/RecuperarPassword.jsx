@@ -15,7 +15,7 @@ function RecuperarPassword() {
             // Verificar si el correo existe llamando a la ruta de búsqueda
             // Asumiremos que crearemos/existe una ruta o usaremos una genérica para buscar por correo.
             // Para mantener compatibilidad con lo actual, envíamos petición POST a nueva ruta u otra
-            const response = await fetch('http://localhost:5000/api/users/check-email', {
+            const response = await fetch('http://localhost:5000/api/password/forgot', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ correo })
