@@ -9,6 +9,9 @@ function GestionModPage() {
     const [successMessage, setSuccessMessage] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [showErrorModal, setShowErrorModal] = useState(false);
+    const [errorModalMessage, setErrorModalMessage] = useState('');
 
     const [formData, setFormData] = useState({
         rol: '',
@@ -58,7 +61,8 @@ function GestionModPage() {
 
     const handleBuscar = async () => {
         if (!buscarDocumento) {
-            alert("Por favor ingrese un número de documento");
+            setErrorModalMessage("Por favor ingrese un número de documento");
+            setShowErrorModal(true);
             return;
         }
 
@@ -72,13 +76,15 @@ function GestionModPage() {
                     const contentType = response.headers.get("content-type");
                     if (contentType && contentType.indexOf("application/json") !== -1) {
                         const errorData = await response.json();
-                        alert(errorData.message || "Usuario no encontrado");
+                        setErrorModalMessage(errorData.message || "Usuario no encontrado");
                     } else {
                         // Si devuelve HTML (Express default 404) es que el endpoint no existe
-                        alert("Error 404: El servicio de búsqueda no responde. Asegúrate de haber REINICIADO el servidor backend (node server.js).");
+                        setErrorModalMessage("Error 404: El servicio de búsqueda no responde. Asegúrate de haber REINICIADO el servidor backend.");
                     }
+                    setShowErrorModal(true);
                 } else {
-                    alert(`Error del servidor: ${response.status} ${response.statusText}`);
+                    setErrorModalMessage(`Error del servidor: ${response.status} ${response.statusText}`);
+                    setShowErrorModal(true);
                 }
                 setUsuarioEncontrado(false);
                 setUserId(null);
@@ -86,6 +92,21 @@ function GestionModPage() {
             }
 
             const data = await response.json();
+            console.log("DEBUG - Datos crudos del servidor:", data);
+
+            // Intentar normalizar el tipo de documento (por si viene el nombre completo)
+            const typeMap = {
+                'TARJETA DE IDENTIDAD': 'TI',
+                'CÉDULA DE CIUDADANÍA': 'CC',
+                'CÉDULA DE EXTRANJERÍA': 'CE',
+                'PASAPORTE': 'PA',
+                'TARJETA DE IDENTIDAD ': 'TI',
+                'CÉDULA DE CIUDADANÍA ': 'CC'
+            };
+
+            const rawType = (data.tipoDocumento || '').trim().toUpperCase();
+            const normalizedType = typeMap[rawType] || rawType;
+
             setUsuarioEncontrado(true);
             setUserId(data.id_user);
             setSuccessMessage('¡Usuario Encontrado!');
@@ -94,20 +115,22 @@ function GestionModPage() {
 
             // Mapear datos al formulario
             setFormData({
-                rol: data.rol,
-                documento: data.document,
-                tipoDocumento: '',
-                nombres: data.nombres,
-                apellidos: data.apellidos,
-                fechaNacimiento: data.fechaNacimiento,
-                correo: data.correo,
+                rol: data.rol || '',
+                documento: data.document || '',
+                tipoDocumento: normalizedType,
+                nombres: data.nombres || '',
+                apellidos: data.apellidos || '',
+                fechaNacimiento: data.fechaNacimiento || '',
+                correo: data.correo || '',
                 password: '',
                 confirmPassword: ''
             });
+            console.log("DEBUG - State formData actualizado con:", { ...formData, tipoDocumento: normalizedType });
 
         } catch (error) {
             console.error("Error buscando usuario:", error);
-            alert("Error de conexión: No se pudo contactar con el backend (localhost:5000). Asegúrate de que node server.js esté corriendo.");
+            setErrorModalMessage("Error de conexión: No se pudo contactar con el backend (localhost:5000). Asegúrate de que node server.js esté corriendo.");
+            setShowErrorModal(true);
         }
     };
 
@@ -167,20 +190,33 @@ function GestionModPage() {
         }
     };
 
-    const handleDelete = async () => {
-        if (window.confirm('¿Estás seguro de que deseas eliminar esta cuenta? Esta acción no se puede deshacer.')) {
-            try {
-                const response = await fetch(`http://localhost:5000/api/users/delete/${userId}`, {
+    const handleDeleteClick = () => {
+        setShowDeleteConfirm(true);
+    };
+
+    const handleCancelDelete = () => {
+        setShowDeleteConfirm(false);
+    };
+
+    const executeDelete = async () => {
+        setShowDeleteConfirm(false); // Hide confirmation modal and proceed
+        try {
+            const response = await fetch(`http://localhost:5000/api/users/delete/${userId}`, {
                     method: 'DELETE'
                 });
 
                 const data = await response.json();
 
                 if (response.ok) {
-                    alert("Usuario eliminado correctamente");
-                    setUsuarioEncontrado(false);
-                    setBuscarDocumento('');
-                    setUserId(null);
+                    setSuccessMessage('¡Usuario Eliminado!');
+                    setShowSuccess(true);
+                    
+                    setTimeout(() => {
+                        setShowSuccess(false);
+                        setUsuarioEncontrado(false);
+                        setBuscarDocumento('');
+                        setUserId(null);
+                    }, 2000);
                 } else {
                     alert(`Error al eliminar: ${data.message}`);
                 }
@@ -188,7 +224,6 @@ function GestionModPage() {
                 console.error("Error eliminando usuario:", error);
                 alert("Error al conectar con el servidor");
             }
-        }
     };
 
     return (
@@ -222,11 +257,97 @@ function GestionModPage() {
                         <p className="text-muted mb-0">
                             {successMessage === '¡Usuario Encontrado!' 
                                 ? 'Los datos del usuario han sido cargados.' 
-                                : 'Los datos han sido actualizados correctamente.'}
+                                : successMessage === '¡Usuario Eliminado!'
+                                    ? 'La cuenta ha sido eliminada permanentemente.'
+                                    : 'Los datos han sido actualizados correctamente.'}
                         </p>
                     </div>
                 </div>
             )}
+
+            {/* Modal de confirmación de eliminación */}
+            {showDeleteConfirm && (
+                <div
+                    className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center"
+                    style={{
+                        backgroundColor: "rgba(51, 45, 45, 0.5)",
+                        zIndex: 9999,
+                    }}
+                >
+                    <div
+                        className="bg-white rounded-4 p-5 text-center shadow-lg"
+                        style={{ maxWidth: "400px" }}
+                    >
+                        <div className="mb-3">
+                            <i
+                                className="fas fa-exclamation-triangle text-warning"
+                                style={{ fontSize: "4rem" }}
+                            ></i>
+                        </div>
+                        <h3 className="fw-bold mb-2">
+                            ¿Estás seguro?
+                        </h3>
+                        <p className="text-muted mb-4">
+                            ¿Deseas eliminar esta cuenta? Esta acción no se puede deshacer.
+                        </p>
+                        <div className="d-flex gap-3 justify-content-center">
+                            <button
+                                type="button"
+                                className="btn btn-outline-secondary px-4 w-50"
+                                onClick={handleCancelDelete}
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                type="button"
+                                className="btn btn-danger px-4 w-50"
+                                onClick={executeDelete}
+                            >
+                                Sí, eliminar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal de error/notificación */}
+            {showErrorModal && (
+                <div
+                    className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center"
+                    style={{
+                        backgroundColor: "rgba(51, 45, 45, 0.5)",
+                        zIndex: 9999,
+                    }}
+                >
+                    <div
+                        className="bg-white rounded-4 p-5 text-center shadow-lg"
+                        style={{ maxWidth: "400px" }}
+                    >
+                        <div className="mb-3">
+                            <i
+                                className="fas fa-exclamation-circle text-danger"
+                                style={{ fontSize: "4rem" }}
+                            ></i>
+                        </div>
+                        <h3 className="fw-bold mb-2">
+                            Aviso
+                        </h3>
+                        <p className="text-muted mb-4">
+                            {errorModalMessage}
+                        </p>
+                        <div className="d-flex justify-content-center">
+                            <button
+                                type="button"
+                                className="btn btn-secondary px-5"
+                                onClick={() => setShowErrorModal(false)}
+                            >
+                                Entendido
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            
             <div className="container-md my-5">
                 <div className="row justify-content-center">
                     {/* Buscador */}
@@ -311,6 +432,9 @@ function GestionModPage() {
                                     {touched.documento && (
                                         <div className="mt-1">
                                             <Regla
+
+
+
                                                 ok={validaciones.documento.longitud}
                                                 texto="Debe tener entre 8 y 10 números"
                                             />
@@ -394,7 +518,7 @@ function GestionModPage() {
                                             type={showPassword ? "text" : "password"} 
                                             className="form-control border-end-0"
                                             id="password"
-                                            placeholder="******** (Dejar en blanco para no cambiar)"
+                                            placeholder="********"
                                             value={formData.password}
                                             onChange={handleChange}
                                         />
@@ -403,7 +527,7 @@ function GestionModPage() {
                                             style={{ cursor: "pointer" }}
                                             onClick={() => setShowPassword(!showPassword)}
                                         >
-                                            <i className={`bi ${showPassword ? "bi-eye-slash" : "bi-eye"}`}></i>
+                                            {/*<i className={`bi ${showPassword ? "bi-eye-slash" : "bi-eye"}`}></i>*/}
                                         </span>
                                     </div>
                                     {formData.password && (
@@ -460,7 +584,7 @@ function GestionModPage() {
                                             style={{ cursor: "pointer" }}
                                             onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                                         >
-                                            <i className={`bi ${showConfirmPassword ? "bi-eye-slash" : "bi-eye"}`}></i>
+                                            {/*<i className={`bi ${showConfirmPassword ? "bi-eye-slash" : "bi-eye"}`}></i>*/}
                                         </span>
                                     </div>
                                 </div>
@@ -472,7 +596,7 @@ function GestionModPage() {
                                     <button
                                         type="button"
                                         className="btn btn-outline-danger px-4 w-50"
-                                        onClick={handleDelete}
+                                        onClick={handleDeleteClick}
                                     >
                                         Eliminar cuenta
                                     </button>
