@@ -13,6 +13,8 @@ function Inicio() {
         password: "",
     });
 
+    const [showPassword, setShowPassword] = useState(false);
+
     const handleChange = (e) => {
         setForm({
             ...form,
@@ -53,14 +55,12 @@ function Inicio() {
                 return;
             }
 
-            // Guardar usuario en contexto
             login(data.user);
             console.log("Usuario:", data.user);
 
-            // Redirigir según el rol
             const roleRoutes = {
                 aprendiz: "/diario",
-                psicologo: "/psi-seguimiento", // Sin tilde (coincide con backend)
+                psicologo: "/psi-seguimiento",
                 administrador: "/gestion"
             };
 
@@ -76,25 +76,26 @@ function Inicio() {
     return (
         <>
             <style>{`
-        .btn-inicio {
-          background-color: #005222;
-          color: white;
-        }
-        .btn-inicio:hover {
-          background-color: #001A0B;
-          color: white;
-        }
-        .contain {
-          background-color: #007832;
-          border-radius: 20px;
-          padding: 50px 8px 0px 8px;
-        }
-      `}</style>
+                .btn-inicio {
+                    background-color: #005222;
+                    color: white;
+                }
+                .btn-inicio:hover {
+                    background-color: #001A0B;
+                    color: white;
+                }
+                .contain {
+                    background-color: #007832;
+                    border-radius: 20px;
+                    padding: 50px 8px 0px 8px;
+                }
+            `}</style>
 
             <div className="container vh-100 d-flex align-items-center justify-content-center">
                 <div className="row shadow-lg rounded-4 overflow-hidden w-100" style={{ maxWidth: "960px" }}>
+                    
                     <div className="col-md-6 d-none d-md-flex bg-light align-items-center justify-content-center p-4">
-                         <img 
+                        <img 
                             src={logo_sena} 
                             alt="logo" 
                             className="img-fluid" 
@@ -104,16 +105,19 @@ function Inicio() {
 
                     <div className="col-md-6 bg-white p-5 d-flex flex-column justify-content-center">
                         <div className="contain p-5">
+                            
                             <h3 className="fw-bold mb-2 text-light">
                                 Iniciar Sesión en <br />
                                 <span>Psychoway</span>
                             </h3>
+
                             <p className="text-light mb-4">
                                 Inicia sesión con tu documento de <br />
                                 identidad y contraseña
                             </p>
 
                             <form onSubmit={handleSubmit}>
+
                                 <div className="text-light mb-3">
                                     <label htmlFor="documento" className="form-label">
                                         Documento de identidad
@@ -142,15 +146,24 @@ function Inicio() {
                                         <span className="input-group-text">
                                             <i className="bi bi-lock-fill" style={{ color: "#007832" }}></i>
                                         </span>
+
                                         <input
-                                            type="password"
-                                            className="form-control"
+                                            type={showPassword ? "text" : "password"}
+                                            className="form-control border-end-0"
                                             id="password"
                                             placeholder="********"
                                             value={form.password}
                                             onChange={handleChange}
                                             required
                                         />
+
+                                        <span 
+                                            className="input-group-text bg-white border-start-0" 
+                                            style={{ cursor: "pointer" }}
+                                            onClick={() => setShowPassword(!showPassword)}
+                                        >
+                                            <i className={`bi ${showPassword ? 'bi-eye-slash' : 'bi-eye'}`} style={{ color: "#007832" }}></i>
+                                        </span>
                                     </div>
                                 </div>
 
@@ -175,10 +188,14 @@ function Inicio() {
                                     </Link>
                                 </div>
 
-                                <div className="text-center mt-4 small text-light">Psychoway © 2024</div>
+                                <div className="text-center mt-4 small text-light">
+                                    Psychoway © 2024
+                                </div>
+
                             </form>
                         </div>
                     </div>
+
                 </div>
             </div>
         </>

@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 function Registro() {
 	const navigate = useNavigate();
 	const [showSuccess, setShowSuccess] = useState(false);
+	const [showDuplicateError, setShowDuplicateError] = useState(false);
 	const [showPassword, setShowPassword] = useState(false);
 	const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 	const [touched, setTouched] = useState({});
@@ -22,7 +23,7 @@ function Registro() {
 	// Validaciones
 	const validaciones = {
 		documento: {
-			longitud: form.documento.length >= 8 && form.documento.length <= 10,
+			longitud: form.documento.length >= 8 && form.documento.length < 12,
 		},
 		correo: {
 			tieneArroba: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.correo),
@@ -98,6 +99,7 @@ function Registro() {
 		// Crear objeto con los nombres que espera tu backend
 		const userData = {
 			document: form.documento,
+			doc_type: form.tipoDocumento,
 			names: form.nombres,
 			last_names: form.apellidos,
 			birth_date: form.fechaNacimiento,
@@ -121,7 +123,11 @@ function Registro() {
 					navigate("/");
 				}, 2000);
 			} else {
-				alert("❌ Error al registrar usuario");
+				if (response.status === 409) {
+					setShowDuplicateError(true);
+				} else {
+					alert("❌ Error al registrar usuario");
+				}
 			}
 		} catch (error) {
 			console.error("Error en la solicitud:", error);
@@ -165,6 +171,41 @@ function Registro() {
 						>
 							<span className="visually-hidden">Cargando...</span>
 						</div>
+					</div>
+				</div>
+			)}
+			
+			{/* Modal de error por duplicado */}
+			{showDuplicateError && (
+				<div
+					className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center"
+					style={{
+						backgroundColor: "rgba(51, 45, 45, 0.5)",
+						zIndex: 9999,
+					}}
+				>
+					<div
+						className="bg-white rounded-4 p-5 text-center shadow-lg"
+						style={{ maxWidth: "400px" }}
+					>
+						<div className="mb-3">
+							<i
+								className="fas fa-exclamation-circle text-danger"
+								style={{ fontSize: "4rem" }}
+							></i>
+						</div>
+						<h3 className="fw-bold text-dark mb-2">
+							El usuario ya se encuentra en el sistema
+						</h3>
+						<p className="text-muted mb-4">
+							El documento o correo electrónico que intentas registrar ya existe.
+						</p>
+						<button
+							className="btn btn-danger px-4 py-2 fw-bold text-white rounded-3"
+							onClick={() => setShowDuplicateError(false)}
+						>
+							Entendido
+						</button>
 					</div>
 				</div>
 			)}
@@ -225,15 +266,15 @@ function Registro() {
 									required
 								>
 									<option value="" disabled>
-										Select
+										Seleccione
 									</option>
-									<option value="Tarjeta de identidad">
+									<option value="TI">
 										Tarjeta de identidad
 									</option>
-									<option value="Cédula de ciudadania">
+									<option value="CC">
 										Cédula de ciudadanía
 									</option>
-									<option value="Cédula de extrangeria">
+									<option value="CE">
 										Cédula de extranjería
 									</option>
 								</select>
@@ -252,7 +293,7 @@ function Registro() {
 										name="documento"
 										value={form.documento}
 										onChange={handleChange}
-										maxLength={10}
+										maxLength={11}
 										required
 										pattern="\d+"
 										title="Debe contener solo números"
@@ -353,7 +394,7 @@ function Registro() {
 									>
 										La contraseña debe contener:
 									</p>
-									<Regla
+									<Regla	
 										ok={
 											validaciones.contraseña
 												.minCaracteres

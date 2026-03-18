@@ -3,7 +3,7 @@ import cors from "cors";
 import mysql from "mysql2";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
-import { transporter, sendPasswordResetEmail } from "./mailer.js";
+import { sendPasswordResetEmail } from "./mailer.js";
 
 const app = express();
 app.use(cors());
@@ -30,27 +30,61 @@ db.connect((err) => {
 
 // Ruta para registrar usuario
 app.post("/register", async (req, res) => {
-  const { document, names, last_names, birth_date, email, password } = req.body;
+  const { document, doc_type, names, last_names, birth_date, email, password } =
+    req.body;
 
-  // Encriptar contraseña
-  const hashedPassword = await bcrypt.hash(password, 10);
+  // Verificar si el usuario ya existe
+  const checkSql = "SELECT * FROM users WHERE document = ? OR email = ?";
+  db.query(checkSql, [document, email], async (err, results) => {
+    if (err) {
+      console.error("Error al validar usuario existente:", err);
+      return res.status(500).json({ message: "Error al registrar usuario" });
+    }
 
-  const sql = `
-    INSERT INTO users (document, names, last_names, birth_date, email, password, id_rol, last_update)
-    VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
-  `;
+    if (results.length > 0) {
+      return res
+        .status(409)
+        .json({ message: "El documento o correo ya se encuentra registrado" });
+    }
 
-  db.query(
-    sql,
-    [document, names, last_names, birth_date, email, hashedPassword, 1],
-    (err, result) => {
-      if (err) {
-        console.error("Error al registrar usuario:", err);
-        return res.status(500).json({ message: "Error al registrar usuario" });
-      }
-      res.status(200).json({ message: "Usuario registrado correctamente" });
-    },
-  );
+    // Si no existe, procedemos a encriptar contraseña y guardar
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const sql = `
+        INSERT INTO users (document, doc_type, names, last_names, birth_date, email, password, id_rol, last_update)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
+        `;
+
+    db.query(
+      sql,
+      [
+        document,
+        doc_type || null,
+        names,
+        last_names,
+        birth_date,
+        email,
+        hashedPassword,
+        1,
+      ],
+      (insertErr, result) => {
+        if (insertErr) {
+          if (insertErr.code === "ER_DUP_ENTRY") {
+            return res
+              .status(409)
+              .json({
+                message: "El documento o correo ya se encuentra registrado",
+              });
+          }
+          console.error("Error al registrar usuario:", insertErr);
+          return res
+            .status(500)
+            .json({ message: "Error al registrar usuario" });
+        }
+        res.status(200).json({ message: "Usuario registrado correctamente" });
+      },
+    );
+  });
 });
 
 // Mapeo de id_rol a nombre de rol
@@ -58,9 +92,9 @@ const ROLES = {
   1: "aprendiz",
   2: "psicologo",
   3: "administrador",
-  "1": "aprendiz",
-  "2": "psicologo",
-  "3": "administrador",
+  1: "aprendiz",
+  2: "psicologo",
+  3: "administrador",
 };
 
 // Ruta para iniciar sesión
@@ -102,9 +136,7 @@ app.post("/login", (req, res) => {
     }
 
     console.log(
-      `Usuario encontrado: ${user.document}, ID Rol: ${
-        user.id_rol
-      } (Tipo: ${typeof user.id_rol})`,
+      `Usuario encontrado: ${user.document}, ID Rol: ${user.id_rol} (Tipo: ${typeof user.id_rol})`,
     );
 
     // Obtener nombre del rol
@@ -452,6 +484,7 @@ app.post("/api/users/create", async (req, res) => {
   const {
     rol,
     documento,
+    tipoDocumento,
     nombres,
     apellidos,
     fechaNacimiento,
@@ -467,12 +500,13 @@ app.post("/api/users/create", async (req, res) => {
     const roleMap = { aprendiz: 1, psicologo: 2, administrador: 3 };
     const idRol = roleMap[rol.toLowerCase()] || 1;
     const hashedPassword = await bcrypt.hash(password, 10);
-    const sql = `INSERT INTO users (document, names, last_names, birth_date, email, password, id_rol, last_update) VALUES (?, ?, ?, ?, ?, ?, ?, NOW())`;
+    const sql = `INSERT INTO users (document, doc_type, names, last_names, birth_date, email, password, id_rol, last_update) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())`;
 
     db.query(
       sql,
       [
         documento,
+        tipoDocumento,
         nombres,
         apellidos,
         fechaNacimiento,
@@ -530,6 +564,7 @@ app.get("/api/users/search/:document", (req, res) => {
     res.status(200).json({
       id_user: user.id_user,
       document: user.document,
+      tipoDocumento: user.doc_type || "",
       rol: roleString,
       nombres: user.names,
       apellidos: user.last_names,
@@ -546,6 +581,7 @@ app.put("/api/users/update/:id", async (req, res) => {
   const {
     rol,
     documento,
+    tipoDocumento,
     nombres,
     apellidos,
     fechaNacimiento,
@@ -559,9 +595,10 @@ app.put("/api/users/update/:id", async (req, res) => {
     let params = [];
     if (password && password.trim() !== "") {
       const hashedPassword = await bcrypt.hash(password, 10);
-      sql = `UPDATE users SET document = ?, names = ?, last_names = ?, birth_date = ?, email = ?, password = ?, id_rol = ?, last_update = NOW() WHERE id_user = ?`;
+      sql = `UPDATE users SET document = ?, doc_type = ?, names = ?, last_names = ?, birth_date = ?, email = ?, password = ?, id_rol = ?, last_update = NOW() WHERE id_user = ?`;
       params = [
         documento,
+        tipoDocumento || null,
         nombres,
         apellidos,
         fechaNacimiento,
@@ -571,9 +608,10 @@ app.put("/api/users/update/:id", async (req, res) => {
         id,
       ];
     } else {
-      sql = `UPDATE users SET document = ?, names = ?, last_names = ?, birth_date = ?, email = ?, id_rol = ?, last_update = NOW() WHERE id_user = ?`;
+      sql = `UPDATE users SET document = ?, doc_type = ?, names = ?, last_names = ?, birth_date = ?, email = ?, id_rol = ?, last_update = NOW() WHERE id_user = ?`;
       params = [
         documento,
+        tipoDocumento || null,
         nombres,
         apellidos,
         fechaNacimiento,
@@ -613,6 +651,126 @@ app.delete("/api/users/delete/:id", (req, res) => {
     res.status(200).json({ message: "Usuario eliminado correctamente" });
   });
 });
+
+// ==================== PASSWORD RECOVERY ENDPOINTS ====================
+
+// Almacén temporal de tokens (en producción usar base de datos)
+const resetTokens = new Map();
+
+// Solicitar recuperación de contraseña
+app.post("/api/password/forgot", (req, res) => {
+  const { correo } = req.body;
+
+  if (!correo) {
+    return res.status(400).json({ message: "El correo es requerido" });
+  }
+
+  // Verificar si el correo existe en la base de datos
+  const sql = "SELECT id_user, email, names FROM users WHERE email = ?";
+  db.query(sql, [correo], async (err, results) => {
+    if (err) {
+      console.error("Error buscando correo:", err);
+      return res.status(500).json({ message: "Error del servidor" });
+    }
+
+    if (results.length === 0) {
+      return res.status(404).json({ message: "Correo no encontrado" });
+    }
+
+    const user = results[0];
+
+    // Generar token único
+    const token = crypto.randomBytes(32).toString("hex");
+
+    // Guardar token con expiración de 1 hora
+    resetTokens.set(token, {
+      userId: user.id_user,
+      email: user.email,
+      expiresAt: Date.now() + 3600000, // 1 hora
+    });
+
+    // Crear enlace de recuperación
+    const resetLink = `http://localhost:3000/reset-password?token=${token}`;
+
+    try {
+      await sendPasswordResetEmail(user.email, resetLink);
+      console.log(`📧 Enlace de recuperación enviado a: ${user.email}`);
+      res
+        .status(200)
+        .json({ message: "Correo de recuperación enviado exitosamente" });
+    } catch (emailError) {
+      console.error("Error enviando correo:", emailError);
+      res
+        .status(500)
+        .json({ message: "Error al enviar el correo de recuperación" });
+    }
+  });
+});
+
+// Restablecer contraseña con token
+app.post("/api/password/reset", async (req, res) => {
+  const { token, newPassword } = req.body;
+
+  if (!token || !newPassword) {
+    return res
+      .status(400)
+      .json({ message: "Token y nueva contraseña son requeridos" });
+  }
+
+  const tokenData = resetTokens.get(token);
+
+  if (!tokenData) {
+    return res.status(400).json({ message: "Token inválido o expirado" });
+  }
+
+  if (Date.now() > tokenData.expiresAt) {
+    resetTokens.delete(token);
+    return res.status(400).json({ message: "El token ha expirado" });
+  }
+
+  try {
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    const sql =
+      "UPDATE users SET password = ?, last_update = NOW() WHERE id_user = ?";
+
+    db.query(sql, [hashedPassword, tokenData.userId], (err, result) => {
+      if (err) {
+        console.error("Error actualizando contraseña:", err);
+        return res
+          .status(500)
+          .json({ message: "Error al actualizar la contraseña" });
+      }
+
+      // Eliminar token usado
+      resetTokens.delete(token);
+      console.log(
+        `✅ Contraseña actualizada para usuario ID: ${tokenData.userId}`,
+      );
+      res.status(200).json({ message: "Contraseña actualizada correctamente" });
+    });
+  } catch (error) {
+    console.error("Error en reset:", error);
+    res.status(500).json({ message: "Error del servidor" });
+  }
+});
+
+// Auto-migración: eliminar columna document_type si existe (se usa doc_type)
+const cleanupDocumentType = () => {
+  const checkSql = "SHOW COLUMNS FROM users LIKE 'document_type'";
+  db.query(checkSql, (err, results) => {
+    if (err) return;
+    if (results.length > 0) {
+      console.log("⚠️ Eliminando columna document_type duplicada...");
+      db.query("ALTER TABLE users DROP COLUMN document_type", (err2) => {
+        if (err2)
+          console.error("❌ Error eliminando document_type:", err2.message);
+        else
+          console.log("✅ Columna document_type eliminada. Se usa doc_type.");
+      });
+    }
+  });
+};
+cleanupDocumentType();
 
 // ==================== AGENDA/MEETINGS ENDPOINTS ====================
 
@@ -689,25 +847,6 @@ const checkObjetivosTable = () => {
   });
 };
 checkObjetivosTable();
-
-// Auto-migración: crear tabla password_resets si no existe
-const createPasswordResetsTable = () => {
-  const sql = `
-        CREATE TABLE IF NOT EXISTS password_resets (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            email VARCHAR(255) NOT NULL,
-            token VARCHAR(255) NOT NULL,
-            expires_at DATETIME NOT NULL,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
-    `;
-  db.query(sql, (err) => {
-    if (err)
-      console.error("❌ Error creando tabla password_resets:", err.message);
-    else console.log("✅ Tabla password_resets verificada/creada.");
-  });
-};
-createPasswordResetsTable();
 
 // Obtener lista de psicólogos
 app.get("/api/psychologists", (req, res) => {
@@ -829,150 +968,6 @@ app.get("/api/meetings/professional-history/:id", (req, res) => {
       return res.status(500).json({ message: "Error al obtener historial" });
     }
     res.status(200).json(results);
-  });
-});
-
-// ==================== PASSWORD RECOVERY ENDPOINTS ====================
-
-// Solicitar recuperación de contraseña (enviar correo)
-app.post("/api/password/forgot", (req, res) => {
-  const { correo } = req.body;
-
-  if (!correo) {
-    return res.status(400).json({ message: "El correo es requerido" });
-  }
-
-  // Buscar usuario por email
-  const sql = "SELECT id_user, email FROM users WHERE email = ?";
-  db.query(sql, [correo], async (err, results) => {
-    if (err) {
-      console.error("Error buscando usuario:", err);
-      return res.status(500).json({ message: "Error interno del servidor" });
-    }
-
-    if (results.length === 0) {
-      return res
-        .status(404)
-        .json({ message: "El correo ingresado no se encuentra registrado." });
-    }
-
-    try {
-      // Generar token único
-      const token = crypto.randomBytes(32).toString("hex");
-      const expiresAt = new Date(Date.now() + 3600000); // 1 hora
-
-      // Eliminar tokens anteriores del mismo email
-      db.query(
-        "DELETE FROM password_resets WHERE email = ?",
-        [correo],
-        (err) => {
-          if (err) console.error("Error limpiando tokens anteriores:", err);
-        },
-      );
-
-      // Guardar token en la BD
-      const insertSql =
-        "INSERT INTO password_resets (email, token, expires_at) VALUES (?, ?, ?)";
-      db.query(insertSql, [correo, token, expiresAt], async (err) => {
-        if (err) {
-          console.error("Error guardando token:", err);
-          return res
-            .status(500)
-            .json({ message: "Error al generar token de recuperación" });
-        }
-
-        // Enviar correo
-        const resetLink = `http://localhost:5173/reset-password?token=${token}`;
-        try {
-          await sendPasswordResetEmail(correo, resetLink);
-          console.log(`📧 Correo de recuperación enviado a: ${correo}`);
-          res
-            .status(200)
-            .json({ message: "Correo de recuperación enviado exitosamente" });
-        } catch (emailErr) {
-          console.error("Error enviando correo:", emailErr);
-          res
-            .status(500)
-            .json({ message: "Error al enviar el correo de recuperación" });
-        }
-      });
-    } catch (error) {
-      console.error("Error en recuperación:", error);
-      res.status(500).json({ message: "Error interno del servidor" });
-    }
-  });
-});
-
-// Restablecer contraseña con token
-app.post("/api/password/reset", async (req, res) => {
-  const { token, newPassword } = req.body;
-
-  if (!token || !newPassword) {
-    return res
-      .status(400)
-      .json({ message: "Token y nueva contraseña son requeridos" });
-  }
-
-  // Buscar token válido (no expirado)
-  const sql =
-    "SELECT * FROM password_resets WHERE token = ? AND expires_at > NOW()";
-  db.query(sql, [token], async (err, results) => {
-    if (err) {
-      console.error("Error buscando token:", err);
-      return res.status(500).json({ message: "Error interno del servidor" });
-    }
-
-    if (results.length === 0) {
-      return res
-        .status(400)
-        .json({
-          message: "El enlace de recuperación es inválido o ha expirado.",
-        });
-    }
-
-    const resetRecord = results[0];
-
-    try {
-      // Hashear nueva contraseña
-      const hashedPassword = await bcrypt.hash(newPassword, 10);
-
-      // Actualizar contraseña del usuario
-      const updateSql =
-        "UPDATE users SET password = ?, last_update = NOW() WHERE email = ?";
-      db.query(
-        updateSql,
-        [hashedPassword, resetRecord.email],
-        (err, result) => {
-          if (err) {
-            console.error("Error actualizando contraseña:", err);
-            return res
-              .status(500)
-              .json({ message: "Error al actualizar la contraseña" });
-          }
-
-          if (result.affectedRows === 0) {
-            return res.status(404).json({ message: "Usuario no encontrado" });
-          }
-
-          // Eliminar token usado
-          db.query(
-            "DELETE FROM password_resets WHERE token = ?",
-            [token],
-            (err) => {
-              if (err) console.error("Error eliminando token:", err);
-            },
-          );
-
-          console.log(`✅ Contraseña actualizada para: ${resetRecord.email}`);
-          res
-            .status(200)
-            .json({ message: "Contraseña actualizada exitosamente" });
-        },
-      );
-    } catch (error) {
-      console.error("Error hasheando contraseña:", error);
-      res.status(500).json({ message: "Error interno del servidor" });
-    }
   });
 });
 
