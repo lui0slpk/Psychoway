@@ -14,8 +14,27 @@ function Inicio() {
     });
 
     const [showPassword, setShowPassword] = useState(false);
+    const [errorMsg, setErrorMsg] = useState("");
+    const [showError, setShowError] = useState(false);
+    const [successMsg, setSuccessMsg] = useState("");
+    const [showSuccess, setShowSuccess] = useState(false);
+
+    const mostrarError = (mensaje) => {
+        setErrorMsg(mensaje);
+        setShowError(true);
+        setTimeout(() => {
+            setShowError(false);
+        }, 5000);
+    };
+
+    const mostrarExito = (mensaje) => {
+        setSuccessMsg(mensaje);
+        setShowSuccess(true);
+    };
 
     const handleChange = (e) => {
+        // Limpiar error al escribir
+        if (showError) setShowError(false);
         setForm({
             ...form,
             [e.target.id]: e.target.value,
@@ -46,17 +65,20 @@ function Inicio() {
             try {
                 data = JSON.parse(text);
             } catch {
-                alert("El servidor está devolviendo HTML, no JSON.");
+                mostrarError("Error de comunicación con el servidor.");
                 return;
             }
 
             if (!response.ok) {
-                alert(data.message);
+                mostrarError(data.message || "Documento o contraseña incorrectos.");
                 return;
             }
 
             login(data.user);
             console.log("Usuario:", data.user);
+
+            const nombre = data.user.names || "usuario";
+            mostrarExito(`¡Bienvenido/a, ${nombre}!`);
 
             const roleRoutes = {
                 aprendiz: "/diario",
@@ -65,11 +87,15 @@ function Inicio() {
             };
 
             const destination = roleRoutes[data.user.rol] || "/diario";
-            navigate(destination);
+
+            // Esperar 1.5s para que el usuario vea la notificación
+            setTimeout(() => {
+                navigate(destination);
+            }, 1500);
 
         } catch (error) {
             console.error("Error en fetch:", error);
-            alert("No se pudo conectar con el servidor.");
+            mostrarError("No se pudo conectar con el servidor.");
         }
     };
 
@@ -88,6 +114,43 @@ function Inicio() {
                     background-color: #007832;
                     border-radius: 20px;
                     padding: 50px 8px 0px 8px;
+                }
+                @keyframes slideDown {
+                    from {
+                        opacity: 0;
+                        transform: translateY(-15px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+                @keyframes shake {
+                    0%, 100% { transform: translateX(0); }
+                    15% { transform: translateX(-6px); }
+                    30% { transform: translateX(6px); }
+                    45% { transform: translateX(-4px); }
+                    60% { transform: translateX(4px); }
+                    75% { transform: translateX(-2px); }
+                    90% { transform: translateX(2px); }
+                }
+                .login-error-alert {
+                    animation: slideDown 0.35s ease-out, shake 0.5s ease-in-out 0.35s;
+                    border: none;
+                    border-radius: 10px;
+                    font-size: 0.9rem;
+                    font-weight: 500;
+                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                }
+                .login-success-alert {
+                    animation: slideDown 0.35s ease-out;
+                    border: none;
+                    border-radius: 10px;
+                    font-size: 0.9rem;
+                    font-weight: 500;
+                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                    background-color: #d1e7dd;
+                    color: #0a3622;
                 }
             `}</style>
 
@@ -117,6 +180,28 @@ function Inicio() {
                             </p>
 
                             <form onSubmit={handleSubmit}>
+
+                                {showError && (
+                                    <div className="alert alert-danger login-error-alert d-flex align-items-center py-2 px-3 mb-3" role="alert">
+                                        <i className="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
+                                        <div>{errorMsg}</div>
+                                        <button
+                                            type="button"
+                                            className="btn-close btn-close-sm ms-auto"
+                                            aria-label="Cerrar"
+                                            onClick={() => setShowError(false)}
+                                            style={{ fontSize: '0.65rem' }}
+                                        ></button>
+                                    </div>
+                                )}
+
+                                {showSuccess && (
+                                    <div className="alert login-success-alert d-flex align-items-center py-2 px-3 mb-3" role="alert">
+                                        <i className="bi bi-check-circle-fill me-2 fs-5"></i>
+                                        <div>{successMsg}</div>
+                                    </div>
+                                )}
+
 
                                 <div className="text-light mb-3">
                                     <label htmlFor="documento" className="form-label">
