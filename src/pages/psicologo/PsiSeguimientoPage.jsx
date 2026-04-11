@@ -12,8 +12,9 @@ function PsiSeguimientoPage() {
     const [aprendices, setAprendices] = useState([]);
     const [selectedUser, setSelectedUser] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [alerts, setAlerts] = useState([]);
 
-    // Fetch aprendices
+    // Fetch aprendices y alertas
     useEffect(() => {
         const fetchAprendices = async () => {
             try {
@@ -31,8 +32,36 @@ function PsiSeguimientoPage() {
                 setLoading(false);
             }
         };
+
+        const fetchAlerts = async () => {
+            try {
+                const res = await fetch('http://localhost:5000/api/psychologist/alerts');
+                if (res.ok) {
+                    const data = await res.json();
+                    setAlerts(data);
+                }
+            } catch (error) {
+                console.error("Error fetching alerts:", error);
+            }
+        };
+
         fetchAprendices();
+        fetchAlerts();
+
+        // Refrescar alertas automáticamente cada 15 segundos
+        const intervalId = setInterval(fetchAlerts, 15000);
+        return () => clearInterval(intervalId);
     }, []);
+
+    const markAlertAsRead = async (id_alert) => {
+        try {
+            await fetch(`http://localhost:5000/api/psychologist/alerts/${id_alert}/read`, { method: 'PUT' });
+            // Actualizar estado local para que desaparezca la alerta
+            setAlerts(prev => prev.map(a => a.id_alert === id_alert ? { ...a, leido: 1 } : a));
+        } catch (error) {
+            console.error("Error marcando alerta como leída", error);
+        }
+    };
 
     const filteredAprendices = aprendices.filter(ap => 
         ap.nombre.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -103,13 +132,53 @@ function PsiSeguimientoPage() {
         );
     }
 
+    const unreadAlerts = alerts.filter(a => !a.leido);
+
     return (
         <MainLayout 
             pageTitle="Seguimiento del Diario" 
-            pageSubtitle="Revisa el estado del diario de los aprendices"
+            pageSubtitle="Revisa el estado del diario de los aprendices y gestiona alertas"
             currentPage="psi-seguimiento"
         >
             <div className="container-fluid px-4 py-4 bg-light">
+                
+                {/* Panel de Alertas Críticas */}
+                {unreadAlerts.length > 0 && (
+                    <div className="row mb-4">
+                        <div className="col-12">
+                            <div className="card shadow-sm border-danger">
+                                <div className="card-header bg-danger text-white fw-bold d-flex justify-content-between align-items-center">
+                                    <span>
+                                        <i className="bi bi-exclamation-triangle-fill me-2"></i>
+                                        Alertas de Riesgo Detectadas por AI ({unreadAlerts.length})
+                                    </span>
+                                </div>
+                                <div className="list-group list-group-flush">
+                                    {unreadAlerts.map(alert => (
+                                        <div key={alert.id_alert} className="list-group-item list-group-item-danger d-flex justify-content-between align-items-start">
+                                            <div className="ms-2 me-auto">
+                                                <div className="fw-bold">
+                                                    Atención requerida para: {alert.aprendiz_nombre} (Doc: {alert.document})
+                                                </div>
+                                                <span className="text-dark d-block mb-1">
+                                                    <strong>Motivo Clínico:</strong> {alert.motivo}
+                                                </span>
+                                                <small className="text-muted">Detectado el: {new Date(alert.timestamp).toLocaleString()}</small>
+                                            </div>
+                                            <button 
+                                                className="btn btn-sm btn-outline-danger"
+                                                onClick={() => markAlertAsRead(alert.id_alert)}
+                                            >
+                                                Marcar Leído
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 <div className="row g-4">
                     {/* Tabla de Diarios */}
                     <div className="col-md-6">

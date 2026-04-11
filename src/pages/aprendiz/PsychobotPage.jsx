@@ -1,30 +1,72 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import MainLayout from '../../layouts/MainLayout';
 import { useAuth } from '../../context/AuthContext';
 
 function PsychobotPage() {
     const { user } = useAuth();
     const [message, setMessage] = useState('');
-    const [chatHistory, setChatHistory] = useState([
-        { type: 'bot', text: `Muy buen día, ${user?.names || 'Usuario'}, soy Psychobot, ¿cómo te encuentras?` }
-    ]);
+    const [chatHistory, setChatHistory] = useState([]);
+    const [isTyping, setIsTyping] = useState(false);
+    const messagesEndRef = useRef(null);
 
-    const handleSubmit = (e) => {
+    // Fetch historial al cargar
+    useEffect(() => {
+        const fetchHistory = async () => {
+            if (!user) return;
+            const userId = user.id || user.id_user;
+            try {
+                const res = await fetch(`http://localhost:5000/api/psychobot/history/${userId}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.length === 0) {
+                        // Mensaje por defecto inicial si no hay historial
+                        setChatHistory([{ type: 'bot', text: `Muy buen día, ${user?.names || 'Usuario'}, soy Psychobot. Estoy aquí para escucharte, ¿cómo te encuentras hoy?` }]);
+                    } else {
+                        setChatHistory(data);
+                    }
+                }
+            } catch (error) {
+                console.error("Error fetching chat history:", error);
+                setChatHistory([{ type: 'bot', text: `Hola ${user?.names || 'Usuario'}, soy Psychobot. Hubo un problema al cargar nuestro último chat, pero estoy aquí. ¿Cómo te sientes?` }]);
+            }
+        };
+        fetchHistory();
+    }, [user]);
+
+    // Scroll automático al final
+    useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, [chatHistory, isTyping]);
+
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!message.trim()) return;
+        if (!message.trim() || isTyping) return;
 
-        // Agregar mensaje del usuario
-        setChatHistory(prev => [...prev, { type: 'user', text: message }]);
-        
-        // Simular respuesta del bot (aquí iría la integración real)
-        setTimeout(() => {
-            setChatHistory(prev => [...prev, { 
-                type: 'bot', 
-                text: 'Gracias por compartir eso conmigo. ¿Podrías contarme más sobre cómo te sientes?' 
-            }]);
-        }, 1000);
-
+        const userMessage = message;
         setMessage('');
+        setChatHistory(prev => [...prev, { type: 'user', text: userMessage }]);
+        setIsTyping(true);
+        
+        try {
+            const userId = user.id || user.id_user;
+            const res = await fetch('http://localhost:5000/api/psychobot/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId, message: userMessage })
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                setChatHistory(prev => [...prev, data]);
+            } else {
+                setChatHistory(prev => [...prev, { type: 'error', text: 'Error: No se pudo procesar tu mensaje.' }]);
+            }
+        } catch (error) {
+            console.error("Error sending message:", error);
+            setChatHistory(prev => [...prev, { type: 'error', text: 'Ocurrió un error de red. Intenta nuevamente.' }]);
+        } finally {
+            setIsTyping(false);
+        }
     };
 
     return (
@@ -67,6 +109,17 @@ function PsychobotPage() {
                                     )}
                                 </React.Fragment>
                             ))}
+
+                            {isTyping && (
+                                <div className="bg-secondary-subtle p-3 rounded text-dark w-75 d-flex align-items-center gap-2">
+                                    <div className="spinner-grow spinner-grow-sm text-secondary" role="status"></div>
+                                    <div className="spinner-grow spinner-grow-sm text-secondary" role="status" style={{animationDelay: '0.2s'}}></div>
+                                    <div className="spinner-grow spinner-grow-sm text-secondary" role="status" style={{animationDelay: '0.4s'}}></div>
+                                    <span className="ms-2">Psychobot está pensando...</span>
+                                </div>
+                            )}
+
+                            <div ref={messagesEndRef} />
                         </div>
                     </div>
 
@@ -79,13 +132,15 @@ function PsychobotPage() {
                                 style={{ fontSize: '1.1rem', height: '48px' }}
                                 value={message}
                                 onChange={(e) => setMessage(e.target.value)}
+                                disabled={isTyping}
                             />
                             <button 
                                 type="submit" 
                                 className="btn btn-outline-success"
                                 style={{ fontSize: '1.1rem', height: '48px' }}
+                                disabled={isTyping || !message.trim()}
                             >
-                                Enviar
+                                {isTyping ? 'Enviando...' : 'Enviar'}
                             </button>
                         </form>
                     </div>
