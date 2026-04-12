@@ -91,10 +91,7 @@ app.post("/register", async (req, res) => {
 const ROLES = {
   1: "aprendiz",
   2: "psicologo",
-  3: "administrador",
-  1: "aprendiz",
-  2: "psicologo",
-  3: "administrador",
+  3: "administrador"
 };
 
 // Ruta para iniciar sesión
