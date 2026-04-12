@@ -118,7 +118,7 @@ function DiarioPage() {
 					body: JSON.stringify({
 						userId: userId,
 						emotionIndex: selectedEmotion,
-						description: diarioTexto,
+						description: diarioTexto.trim(),
 						objectiveId: selectedObjective || null, // Enviar objetivo seleccionado
 					}),
 				},
