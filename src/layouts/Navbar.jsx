@@ -58,7 +58,7 @@ function Navbar({ pageTitle, pageSubtitle }) {
         <nav className="sb-topnav navbar navbar-expand navbar-light bg-white">
             {/* Navbar Brand */}
             <div className="navbar-brand bg-light-green ps-3 pt-3">
-                <span className="text-decoration-none fs-1" style={{ color: 'white', fontSize: '40px' }}>
+                <span className="text-decoration-none brand-text" style={{ color: 'white' }}>
                     Psychoway
                 </span>
             </div>
@@ -72,12 +72,12 @@ function Navbar({ pageTitle, pageSubtitle }) {
             </button>
 
             {/* Nombre de sección */}
-            <div className="navbar-text ms-4 p-4">
+            <div className="navbar-text ms-2 ms-lg-4 p-2 p-lg-4">
                 <div className="lh-base">
-                    <h2 className="fw-semibold m-0 text-dark" style={{ fontSize: '30px' }}>
+                    <h2 className="fw-semibold m-0 text-dark page-title">
                         {pageTitle}
                     </h2>
-                    <p style={{ color: '#8C8C8D', fontSize: '18px' }} className="text m-0">
+                    <p className="text m-0 page-subtitle" style={{ color: '#8C8C8D' }}>
                         {pageSubtitle}
                     </p>
                 </div>
@@ -105,6 +105,28 @@ function Navbar({ pageTitle, pageSubtitle }) {
                     </ul>
                 </li>
             </ul>
+            <style>{`
+                .brand-text {
+                    font-size: 24px;
+                }
+                .page-title {
+                    font-size: 20px;
+                }
+                .page-subtitle {
+                    font-size: 14px;
+                }
+                @media (min-width: 992px) {
+                    .brand-text {
+                        font-size: 40px;
+                    }
+                    .page-title {
+                        font-size: 30px;
+                    }
+                    .page-subtitle {
+                        font-size: 18px;
+                    }
+                }
+            `}</style>
         </nav>
     );
 }
