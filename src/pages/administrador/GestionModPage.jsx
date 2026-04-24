@@ -529,7 +529,7 @@ function GestionModPage() {
                       style={{ cursor: "pointer" }}
                       onClick={() => setShowPassword(!showPassword)}
                     >
-                      {/*<i className={`bi ${showPassword ? "bi-eye-slash" : "bi-eye"}`}></i>*/}
+                      <i className={`bi ${showPassword ? "bi-eye-slash" : "bi-eye"}`}></i>
                     </span>
                   </div>
                   {formData.password && (
@@ -591,7 +591,7 @@ function GestionModPage() {
                         setShowConfirmPassword(!showConfirmPassword)
                       }
                     >
-                      {/*<i className={`bi ${showConfirmPassword ? "bi-eye-slash" : "bi-eye"}`}></i>*/}
+                      <i className={`bi ${showConfirmPassword ? "bi-eye-slash" : "bi-eye"}`}></i>
                     </span>
                   </div>
                 </div>
