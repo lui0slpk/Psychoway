@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 12-04-2026 a las 03:03:06
+-- Tiempo de generación: 24-04-2026 a las 04:58:36
 -- Versión del servidor: 10.4.32-MariaDB
 -- Versión de PHP: 8.2.12
 
@@ -55,16 +55,17 @@ CREATE TABLE `diary` (
   `id_diary` int(11) NOT NULL,
   `id_user` int(11) DEFAULT NULL,
   `fecha` date DEFAULT NULL,
-  `last_update` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+  `last_update` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `diary_visibility` varchar(20) DEFAULT 'yo-psicologo'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Volcado de datos para la tabla `diary`
 --
 
-INSERT INTO `diary` (`id_diary`, `id_user`, `fecha`, `last_update`) VALUES
-(1, 3, '2026-04-11', '2026-04-11 23:50:15'),
-(2, 4, '2026-04-11', '2026-04-12 01:00:22');
+INSERT INTO `diary` (`id_diary`, `id_user`, `fecha`, `last_update`, `diary_visibility`) VALUES
+(1, 3, '2026-04-11', '2026-04-11 23:50:15', 'yo-psicologo'),
+(2, 4, '2026-04-11', '2026-04-12 01:00:22', 'yo-psicologo');
 
 -- --------------------------------------------------------
 
@@ -93,7 +94,8 @@ INSERT INTO `diary_entries` (`id_diary_entries`, `id_diary`, `entry_date`, `desc
 (4, 1, '2026-04-11 19:40:47', 'Etoi tiste porque creí que Lim Joo-kyung se iba a separar de Lee Su-ho', 6, 1, '2026-04-12 00:40:47'),
 (5, 1, '2026-04-11 19:42:41', 'Pobre Han Seou-Joon, al final se quedó solito', 2, 1, '2026-04-12 00:42:41'),
 (6, 2, '2026-04-11 20:00:22', 'Wiwiwiwi', 1, 2, '2026-04-12 01:00:22'),
-(7, 2, '2026-04-11 20:01:29', 'Guagua', 2, 3, '2026-04-12 01:01:29');
+(7, 2, '2026-04-11 20:01:29', 'Guagua', 2, 3, '2026-04-12 01:01:29'),
+(8, 2, '2026-04-23 19:13:19', 'Hola', 1, 3, '2026-04-24 00:13:19');
 
 -- --------------------------------------------------------
 
@@ -347,7 +349,7 @@ ALTER TABLE `diary`
 -- AUTO_INCREMENT de la tabla `diary_entries`
 --
 ALTER TABLE `diary_entries`
-  MODIFY `id_diary_entries` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `id_diary_entries` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT de la tabla `emotions`
