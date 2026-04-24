@@ -17,6 +17,9 @@ function MiCuentaPage() {
         confirmPassword: ''
     });
 
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
     const handleChange = (e) => {
         setFormData({
             ...formData,
@@ -128,29 +131,47 @@ function MiCuentaPage() {
 
                             <div className="mb-3">
                                 <label className="form-label">Contraseña</label>
-                                <input 
-                                    type="password" 
-                                    className="form-control"
-                                    id="password"
-                                    placeholder="********"
-                                    value={formData.password}
-                                    onChange={handleChange}
-                                />
+                                <div className="input-group">
+                                    <input 
+                                        type={showPassword ? "text" : "password"} 
+                                        className="form-control border-end-0"
+                                        id="password"
+                                        placeholder="********"
+                                        value={formData.password}
+                                        onChange={handleChange}
+                                    />
+                                    <span 
+                                        className="input-group-text bg-white border-start-0" 
+                                        style={{ cursor: "pointer" }}
+                                        onClick={() => setShowPassword(!showPassword)}
+                                    >
+                                        <i className={`bi ${showPassword ? 'bi-eye-slash' : 'bi-eye'}`}></i>
+                                    </span>
+                                </div>
                             </div>
 
                             <div className="mb-3">
                                 <label className="form-label">
                                     Confirmar contraseña <span className="text-danger">*</span>
                                 </label>
-                                <input 
-                                    type="password" 
-                                    className="form-control"
-                                    id="confirmPassword"
-                                    placeholder="********"
-                                    value={formData.confirmPassword}
-                                    onChange={handleChange}
-                                    required
-                                />
+                                <div className="input-group">
+                                    <input 
+                                        type={showConfirmPassword ? "text" : "password"} 
+                                        className="form-control border-end-0"
+                                        id="confirmPassword"
+                                        placeholder="********"
+                                        value={formData.confirmPassword}
+                                        onChange={handleChange}
+                                        required
+                                    />
+                                    <span 
+                                        className="input-group-text bg-white border-start-0" 
+                                        style={{ cursor: "pointer" }}
+                                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                    >
+                                        <i className={`bi ${showConfirmPassword ? 'bi-eye-slash' : 'bi-eye'}`}></i>
+                                    </span>
+                                </div>
                             </div>
 
                             <div className="d-flex gap-3 justify-content-center">

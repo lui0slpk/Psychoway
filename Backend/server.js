@@ -968,6 +968,84 @@ app.get("/api/meetings/professional-history/:id", (req, res) => {
   });
 });
 
+// Obtener aprendices que tienen emociones registradas
+app.get("/api/psychologist/apprentices-with-emotions", (req, res) => {
+  const sql = `
+        SELECT 
+            u.id_user as id, 
+            CONCAT(u.names, ' ', u.last_names) as nombre, 
+            u.document as documento
+        FROM users u
+        WHERE u.id_rol = 1 AND EXISTS (
+            SELECT 1 FROM diary d 
+            JOIN diary_entries de ON d.id_diary = de.id_diary 
+            WHERE d.id_user = u.id_user
+        )
+    `;
+  db.query(sql, (err, results) => {
+    if (err) {
+      console.error("Error obteniendo aprendices con emociones:", err);
+      return res.status(500).json({ message: "Error al obtener aprendices" });
+    }
+
+    const sqlEmotions = `
+            SELECT 
+                d.id_user,
+                e.emot_estado,
+                de.entry_date
+            FROM diary_entries de
+            JOIN diary d ON de.id_diary = d.id_diary
+            JOIN emotions e ON de.id_emotions = e.id_emotions
+            ORDER BY de.entry_date ASC
+        `;
+    db.query(sqlEmotions, (err2, emotionResults) => {
+      if (err2)
+        return res
+          .status(500)
+          .json({ message: "Error al obtener emociones" });
+
+      const usersData = results.map((user) => {
+        const userEmociones = emotionResults.filter(
+          (e) => e.id_user === user.id
+        );
+
+        const ultimaEmocionObj = userEmociones[userEmociones.length - 1];
+        const ultima = ultimaEmocionObj
+          ? ultimaEmocionObj.emot_estado
+          : "N/D";
+        let ultimaPlural = "N/D";
+        if (ultima.includes("Positivo")) ultimaPlural = "Positivas";
+        else if (ultima.includes("Negativo")) ultimaPlural = "Negativas";
+        else if (ultima.includes("Neutral")) ultimaPlural = "Neutral";
+
+        let positivas = 0;
+        let negativas = 0;
+        let neutrales = 0;
+        userEmociones.forEach((e) => {
+          if (e.emot_estado === "Positivo") positivas++;
+          else if (e.emot_estado === "Negativo") negativas++;
+          else neutrales++;
+        });
+
+        let promedio = "Neutral";
+        if (positivas >= negativas && positivas >= neutrales)
+          promedio = "Positivas";
+        else if (negativas >= positivas && negativas >= neutrales)
+          promedio = "Negativas";
+
+        return {
+          ...user,
+          ultima: ultimaPlural,
+          promedio,
+          estadisticas: { positivas, negativas, neutrales },
+        };
+      });
+
+      res.status(200).json(usersData);
+    });
+  });
+});
+
 const PORT = 5000;
 app.listen(PORT, () =>
   console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`),
