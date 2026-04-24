@@ -13,6 +13,41 @@ function PsiSeguimientoPage() {
     const [selectedUser, setSelectedUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
+    // Historial de emociones del aprendiz seleccionado
+    const [historial, setHistorial] = useState([]);
+    const [pagEmoc, setPagEmoc] = useState(1);
+    const POR_PAGINA = 5;
+
+    // Paginación reutilizable
+    const Paginacion = ({ total, pagina, setPagina }) => {
+        const totalPags = Math.ceil(total / POR_PAGINA);
+        if (totalPags <= 1) return null;
+        const pages = [];
+        for (let i = 1; i <= totalPags; i++) pages.push(i);
+        return (
+            <nav className="d-flex justify-content-center mt-3">
+                <ul className="pagination pagination-sm mb-0">
+                    <li className={`page-item ${pagina === 1 ? 'disabled' : ''}`}>
+                        <button className="page-link" onClick={() => setPagina(p => Math.max(1, p - 1))}>‹</button>
+                    </li>
+                    {pages.map(p => (
+                        <li key={p} className={`page-item ${pagina === p ? 'active' : ''}`}>
+                            <button className="page-link" onClick={() => setPagina(p)}>{p}</button>
+                        </li>
+                    ))}
+                    <li className={`page-item ${pagina === totalPags ? 'disabled' : ''}`}>
+                        <button className="page-link" onClick={() => setPagina(p => Math.min(totalPags, p + 1))}>›</button>
+                    </li>
+                </ul>
+            </nav>
+        );
+    };
+
+    const getEmoji = (emot) => {
+        const mapa = { 'Muy Feliz': '😄', 'Feliz': '🙂', 'Neutral': '😐', 'Triste': '☹️', 'Muy Triste': '😞' };
+        return mapa[emot] || '😐';
+    };
+
     // Fetch aprendices
     useEffect(() => {
         const fetchAprendices = async () => {
@@ -33,6 +68,23 @@ function PsiSeguimientoPage() {
         };
         fetchAprendices();
     }, []);
+
+    // Fetch historial de emociones cuando cambia el aprendiz seleccionado
+    useEffect(() => {
+        if (!selectedUser) return;
+        const userId = selectedUser.id;
+        setPagEmoc(1);
+
+        const fetchHistorial = async () => {
+            try {
+                const res = await fetch(`http://localhost:5000/api/diary/entries/${userId}`);
+                if (res.ok) setHistorial(await res.json());
+                else setHistorial([]);
+            } catch (e) { console.error('Error historial:', e); setHistorial([]); }
+        };
+
+        fetchHistorial();
+    }, [selectedUser]);
 
     const filteredAprendices = aprendices.filter(ap => 
         ap.nombre.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -253,6 +305,61 @@ function PsiSeguimientoPage() {
                         </div>
                     </div>
                 </div>
+
+                {/* Historial de Emociones del aprendiz seleccionado */}
+                {selectedUser && (
+                    <div className="row g-4 mt-2 justify-content-center">
+                        <div className="col-md-8">
+                            <div className="card shadow-sm">
+                                <div className="card-body p-3">
+                                    <h5 className="mb-3">
+                                        <span className="me-2">😊</span>Historial de Emociones — {selectedUser.nombre}
+                                    </h5>
+                                    <table className="table mb-0">
+                                        <thead className="table-light">
+                                            <tr>
+                                                <th>Fecha</th>
+                                                <th>Emoción</th>
+                                                <th>Descripción</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {(() => {
+                                                const slice = historial.slice((pagEmoc - 1) * POR_PAGINA, pagEmoc * POR_PAGINA);
+                                                return slice.length === 0 ? (
+                                                    <tr>
+                                                        <td colSpan="3" className="text-center text-muted">
+                                                            No hay registros de emociones aún.
+                                                        </td>
+                                                    </tr>
+                                                ) : (
+                                                    slice.map((entry) => (
+                                                        <tr key={entry.id_diary_entries}>
+                                                            <td>
+                                                                {new Date(entry.entry_date).toLocaleDateString()} <br />
+                                                                <small className="text-muted">
+                                                                    {new Date(entry.entry_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                                </small>
+                                                            </td>
+                                                            <td>
+                                                                <div className="d-flex align-items-center gap-2">
+                                                                    <span className="fs-4">{getEmoji(entry.emot_name)}</span>
+                                                                    {entry.emot_name}
+                                                                </div>
+                                                            </td>
+                                                            <td>{entry.description || '-'}</td>
+                                                        </tr>
+                                                    ))
+                                                );
+                                            })()}
+                                        </tbody>
+                                    </table>
+                                    <Paginacion total={historial.length} pagina={pagEmoc} setPagina={setPagEmoc} />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </MainLayout>
     );
