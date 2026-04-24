@@ -360,6 +360,52 @@ app.get("/api/diary/entries/:userId", (req, res) => {
   });
 });
 
+// Obtener configuración de privacidad de un usuario
+app.get("/api/users/privacy/:userId", (req, res) => {
+  const { userId } = req.params;
+  const sql = "SELECT diary_visibility FROM diary WHERE id_user = ?";
+  db.query(sql, [userId], (err, results) => {
+    if (err) {
+      console.error("Error obteniendo privacidad:", err);
+      return res.status(500).json({ message: "Error al obtener privacidad" });
+    }
+    if (results.length === 0) {
+      return res.status(200).json({ diary_visibility: 'yo-psicologo' }); // Default if no diary yet
+    }
+    res.status(200).json(results[0]);
+  });
+});
+
+// Actualizar configuración de privacidad de un usuario
+app.put("/api/users/privacy/:userId", (req, res) => {
+  const { userId } = req.params;
+  const { visibilidad } = req.body;
+
+  if (!visibilidad) {
+    return res.status(400).json({ message: "Visibilidad es requerida" });
+  }
+
+  // Primero verificar si existe el diario, si no, crearlo
+  const checkSql = "SELECT id_diary FROM diary WHERE id_user = ?";
+  db.query(checkSql, [userId], (err, results) => {
+    if (err) return res.status(500).json({ message: "Error al actualizar privacidad" });
+
+    if (results.length > 0) {
+      const updateSql = "UPDATE diary SET diary_visibility = ? WHERE id_user = ?";
+      db.query(updateSql, [visibilidad, userId], (err2) => {
+        if (err2) return res.status(500).json({ message: "Error al actualizar privacidad" });
+        res.status(200).json({ message: "Privacidad actualizada correctamente" });
+      });
+    } else {
+      const insertSql = "INSERT INTO diary (id_user, fecha, diary_visibility) VALUES (?, CURDATE(), ?)";
+      db.query(insertSql, [userId, visibilidad], (err2) => {
+        if (err2) return res.status(500).json({ message: "Error al actualizar privacidad" });
+        res.status(200).json({ message: "Privacidad configurada correctamente" });
+      });
+    }
+  });
+});
+
 // ==================== OBJECTIVES ENDPOINTS ====================
 
 // Crear objetivo
@@ -815,6 +861,23 @@ const checkMeetingsTable = () => {
 };
 checkMeetingsTable();
 
+// Auto-migración: agregar diary_visibility a la tabla diary si no existe
+const checkDiaryVisibilityColumn = () => {
+  const checkSql = "SHOW COLUMNS FROM diary LIKE 'diary_visibility'";
+  db.query(checkSql, (err, results) => {
+    if (err) return;
+    if (results.length === 0) {
+      console.log("⚠️ Columna diary_visibility no encontrada en diary. Agregando...");
+      const alterSql = "ALTER TABLE diary ADD COLUMN diary_visibility VARCHAR(20) DEFAULT 'yo-psicologo'";
+      db.query(alterSql, (err2) => {
+        if (err2) console.error("❌ Error agregando diary_visibility:", err2.message);
+        else console.log("✅ Columna diary_visibility agregada a diary.");
+      });
+    }
+  });
+};
+checkDiaryVisibilityColumn();
+
 // Auto-migración: agregar id_user a la tabla objetivos si no existe
 const checkObjetivosTable = () => {
   const checkSql = "SHOW COLUMNS FROM objetivos LIKE 'id_user'";
@@ -976,10 +1039,12 @@ app.get("/api/psychologist/apprentices-with-emotions", (req, res) => {
             CONCAT(u.names, ' ', u.last_names) as nombre, 
             u.document as documento
         FROM users u
-        WHERE u.id_rol = 1 AND EXISTS (
-            SELECT 1 FROM diary d 
-            JOIN diary_entries de ON d.id_diary = de.id_diary 
-            WHERE d.id_user = u.id_user
+        JOIN diary d ON u.id_user = d.id_user
+        WHERE u.id_rol = 1 
+          AND d.diary_visibility = 'yo-psicologo'
+          AND EXISTS (
+            SELECT 1 FROM diary_entries de 
+            WHERE d.id_diary = de.id_diary
         )
     `;
   db.query(sql, (err, results) => {
