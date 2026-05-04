@@ -71,11 +71,9 @@ app.post("/register", async (req, res) => {
       (insertErr, result) => {
         if (insertErr) {
           if (insertErr.code === "ER_DUP_ENTRY") {
-            return res
-              .status(409)
-              .json({
-                message: "El documento o correo ya se encuentra registrado",
-              });
+            return res.status(409).json({
+              message: "El documento o correo ya se encuentra registrado",
+            });
           }
           console.error("Error al registrar usuario:", insertErr);
           return res
@@ -92,7 +90,7 @@ app.post("/register", async (req, res) => {
 const ROLES = {
   1: "aprendiz",
   2: "psicologo",
-  3: "administrador"
+  3: "administrador",
 };
 
 // Ruta para iniciar sesión
@@ -221,12 +219,10 @@ app.post("/api/diary/entry", async (req, res) => {
         db.query(checkEmotionSql, [emotionName], (err, emotionResults) => {
           if (err) {
             console.error("Error verificando emoción:", err);
-            return res
-              .status(500)
-              .json({
-                message: "Error al verificar emoción",
-                error: err.message,
-              });
+            return res.status(500).json({
+              message: "Error al verificar emoción",
+              error: err.message,
+            });
           }
 
           let emotionId;
@@ -244,12 +240,10 @@ app.post("/api/diary/entry", async (req, res) => {
               (err, result) => {
                 if (err) {
                   console.error("Error creando entrada de diario:", err);
-                  return res
-                    .status(500)
-                    .json({
-                      message: "Error al crear entrada de diario",
-                      error: err.message,
-                    });
+                  return res.status(500).json({
+                    message: "Error al crear entrada de diario",
+                    error: err.message,
+                  });
                 }
 
                 res.status(200).json({
@@ -289,12 +283,10 @@ app.post("/api/diary/entry", async (req, res) => {
               [emotionName, emotionState],
               (err, result) => {
                 if (err) {
-                  return res
-                    .status(500)
-                    .json({
-                      message: "Error al crear emoción",
-                      error: err.message,
-                    });
+                  return res.status(500).json({
+                    message: "Error al crear emoción",
+                    error: err.message,
+                  });
                 }
                 emotionId = result.insertId;
                 getLatestObjective((objectiveId) => {
@@ -371,7 +363,7 @@ app.get("/api/users/privacy/:userId", (req, res) => {
       return res.status(500).json({ message: "Error al obtener privacidad" });
     }
     if (results.length === 0) {
-      return res.status(200).json({ diary_visibility: 'yo-psicologo' }); // Default if no diary yet
+      return res.status(200).json({ diary_visibility: "yo-psicologo" }); // Default if no diary yet
     }
     res.status(200).json(results[0]);
   });
@@ -389,19 +381,34 @@ app.put("/api/users/privacy/:userId", (req, res) => {
   // Primero verificar si existe el diario, si no, crearlo
   const checkSql = "SELECT id_diary FROM diary WHERE id_user = ?";
   db.query(checkSql, [userId], (err, results) => {
-    if (err) return res.status(500).json({ message: "Error al actualizar privacidad" });
+    if (err)
+      return res
+        .status(500)
+        .json({ message: "Error al actualizar privacidad" });
 
     if (results.length > 0) {
-      const updateSql = "UPDATE diary SET diary_visibility = ? WHERE id_user = ?";
+      const updateSql =
+        "UPDATE diary SET diary_visibility = ? WHERE id_user = ?";
       db.query(updateSql, [visibilidad, userId], (err2) => {
-        if (err2) return res.status(500).json({ message: "Error al actualizar privacidad" });
-        res.status(200).json({ message: "Privacidad actualizada correctamente" });
+        if (err2)
+          return res
+            .status(500)
+            .json({ message: "Error al actualizar privacidad" });
+        res
+          .status(200)
+          .json({ message: "Privacidad actualizada correctamente" });
       });
     } else {
-      const insertSql = "INSERT INTO diary (id_user, fecha, diary_visibility) VALUES (?, CURDATE(), ?)";
+      const insertSql =
+        "INSERT INTO diary (id_user, fecha, diary_visibility) VALUES (?, CURDATE(), ?)";
       db.query(insertSql, [userId, visibilidad], (err2) => {
-        if (err2) return res.status(500).json({ message: "Error al actualizar privacidad" });
-        res.status(200).json({ message: "Privacidad configurada correctamente" });
+        if (err2)
+          return res
+            .status(500)
+            .json({ message: "Error al actualizar privacidad" });
+        res
+          .status(200)
+          .json({ message: "Privacidad configurada correctamente" });
       });
     }
   });
@@ -568,12 +575,10 @@ app.post("/api/users/create", async (req, res) => {
             .status(500)
             .json({ message: "Error al crear usuario en base de datos" });
         }
-        res
-          .status(201)
-          .json({
-            message: "Usuario creado exitosamente",
-            userId: result.insertId,
-          });
+        res.status(201).json({
+          message: "Usuario creado exitosamente",
+          userId: result.insertId,
+        });
       },
     );
   } catch (error) {
@@ -682,12 +687,10 @@ app.delete("/api/users/delete/:id", (req, res) => {
   db.query(sql, [id], (err, result) => {
     if (err) {
       if (err.code === "ER_ROW_IS_REFERENCED_2")
-        return res
-          .status(400)
-          .json({
-            message:
-              "No se puede eliminar: El usuario tiene registros asociados.",
-          });
+        return res.status(400).json({
+          message:
+            "No se puede eliminar: El usuario tiene registros asociados.",
+        });
       return res.status(500).json({ message: "Error al eliminar usuario" });
     }
     if (result.affectedRows === 0)
@@ -868,10 +871,14 @@ const checkDiaryVisibilityColumn = () => {
   db.query(checkSql, (err, results) => {
     if (err) return;
     if (results.length === 0) {
-      console.log("⚠️ Columna diary_visibility no encontrada en diary. Agregando...");
-      const alterSql = "ALTER TABLE diary ADD COLUMN diary_visibility VARCHAR(20) DEFAULT 'yo-psicologo'";
+      console.log(
+        "⚠️ Columna diary_visibility no encontrada en diary. Agregando...",
+      );
+      const alterSql =
+        "ALTER TABLE diary ADD COLUMN diary_visibility VARCHAR(20) DEFAULT 'yo-psicologo'";
       db.query(alterSql, (err2) => {
-        if (err2) console.error("❌ Error agregando diary_visibility:", err2.message);
+        if (err2)
+          console.error("❌ Error agregando diary_visibility:", err2.message);
         else console.log("✅ Columna diary_visibility agregada a diary.");
       });
     }
@@ -945,19 +952,15 @@ app.post("/api/meetings", (req, res) => {
   db.query(checkSql, [professionalId, day, hour], (err, results) => {
     if (err) {
       console.error("Error verificando disponibilidad:", err);
-      return res
-        .status(500)
-        .json({
-          message: "Error del servidor al verificar disponibilidad",
-          error: err.message,
-        });
+      return res.status(500).json({
+        message: "Error del servidor al verificar disponibilidad",
+        error: err.message,
+      });
     }
     if (results.length > 0)
-      return res
-        .status(409)
-        .json({
-          message: "Ese horario ya está ocupado para este profesional.",
-        });
+      return res.status(409).json({
+        message: "Ese horario ya está ocupado para este profesional.",
+      });
 
     const insertSql = `
             INSERT INTO meetings_agenda (id_user, id_professional, day, hour, descripcion, last_update)
@@ -1066,19 +1069,15 @@ app.get("/api/psychologist/apprentices-with-emotions", (req, res) => {
         `;
     db.query(sqlEmotions, (err2, emotionResults) => {
       if (err2)
-        return res
-          .status(500)
-          .json({ message: "Error al obtener emociones" });
+        return res.status(500).json({ message: "Error al obtener emociones" });
 
       const usersData = results.map((user) => {
         const userEmociones = emotionResults.filter(
-          (e) => e.id_user === user.id
+          (e) => e.id_user === user.id,
         );
 
         const ultimaEmocionObj = userEmociones[userEmociones.length - 1];
-        const ultima = ultimaEmocionObj
-          ? ultimaEmocionObj.emot_estado
-          : "N/D";
+        const ultima = ultimaEmocionObj ? ultimaEmocionObj.emot_estado : "N/D";
         let ultimaPlural = "N/D";
         if (ultima.includes("Positivo")) ultimaPlural = "Positivas";
         else if (ultima.includes("Negativo")) ultimaPlural = "Negativas";
@@ -1115,17 +1114,18 @@ app.get("/api/psychologist/apprentices-with-emotions", (req, res) => {
 // ==================== PSYCHOBOT AI ENDPOINTS ====================
 
 // Instanciar IA. Se requiere que el usuario cambie 'API_KEY_AQUI' por su key de Google Gemini
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "AIzaSyAX5S6gHr3IiBnLfnM-UQYhWW3DMrroXG0"; 
+const GEMINI_API_KEY =
+  process.env.GEMINI_API_KEY || "AIzaSyAX5S6gHr3IiBnLfnM-UQYhWW3DMrroXG0";
 let ai;
 try {
-    ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+  ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
 } catch (error) {
-    console.error("Error al inicializar la IA de Gemini:", error.message);
+  console.error("Error al inicializar la IA de Gemini:", error.message);
 }
 
 // Auto-crear tabla de sesiones del bot
 const checkPsychobotSessionsTable = () => {
-    const createSessionsSql = `
+  const createSessionsSql = `
         CREATE TABLE IF NOT EXISTS psychobot_sessions (
             id_session INT AUTO_INCREMENT PRIMARY KEY,
             id_user INT NOT NULL,
@@ -1134,16 +1134,17 @@ const checkPsychobotSessionsTable = () => {
             FOREIGN KEY (id_user) REFERENCES users(id_user) ON DELETE CASCADE
         )
     `;
-    db.query(createSessionsSql, (err) => {
-        if (err) console.error("❌ Error creando tabla psychobot_sessions:", err.message);
-        else console.log("✅ Tabla psychobot_sessions lista.");
-    });
+  db.query(createSessionsSql, (err) => {
+    if (err)
+      console.error("❌ Error creando tabla psychobot_sessions:", err.message);
+    else console.log("✅ Tabla psychobot_sessions lista.");
+  });
 };
 checkPsychobotSessionsTable();
 
 // Auto-crear tabla de historial del bot (Actualizada con id_session)
 const checkPsychobotTable = () => {
-    const createTableSql = `
+  const createTableSql = `
         CREATE TABLE IF NOT EXISTS psychobot_chats (
             id_chat INT AUTO_INCREMENT PRIMARY KEY,
             id_user INT NOT NULL,
@@ -1155,30 +1156,38 @@ const checkPsychobotTable = () => {
             FOREIGN KEY (id_session) REFERENCES psychobot_sessions(id_session) ON DELETE CASCADE
         )
     `;
-    db.query(createTableSql, (err) => {
-        if (err) {
-            console.error("❌ Error creando tabla psychobot_chats:", err.message);
-        } else {
-            console.log("✅ Tabla psychobot_chats lista.");
-            // Migración: Asegurar que id_session existe si la tabla ya existía
-            db.query("SHOW COLUMNS FROM psychobot_chats LIKE 'id_session'", (errCol, results) => {
-                if (!errCol && results.length === 0) {
-                    console.log("⚠️ Agregando columna id_session a psychobot_chats...");
-                    db.query("ALTER TABLE psychobot_chats ADD COLUMN id_session INT NULL", (errAlt) => {
-                        if (!errAlt) {
-                            db.query("ALTER TABLE psychobot_chats ADD CONSTRAINT fk_chat_session FOREIGN KEY (id_session) REFERENCES psychobot_sessions(id_session) ON DELETE CASCADE");
-                        }
-                    });
+  db.query(createTableSql, (err) => {
+    if (err) {
+      console.error("❌ Error creando tabla psychobot_chats:", err.message);
+    } else {
+      console.log("✅ Tabla psychobot_chats lista.");
+      // Migración: Asegurar que id_session existe si la tabla ya existía
+      db.query(
+        "SHOW COLUMNS FROM psychobot_chats LIKE 'id_session'",
+        (errCol, results) => {
+          if (!errCol && results.length === 0) {
+            console.log("⚠️ Agregando columna id_session a psychobot_chats...");
+            db.query(
+              "ALTER TABLE psychobot_chats ADD COLUMN id_session INT NULL",
+              (errAlt) => {
+                if (!errAlt) {
+                  db.query(
+                    "ALTER TABLE psychobot_chats ADD CONSTRAINT fk_chat_session FOREIGN KEY (id_session) REFERENCES psychobot_sessions(id_session) ON DELETE CASCADE",
+                  );
                 }
-            });
-        }
-    });
+              },
+            );
+          }
+        },
+      );
+    }
+  });
 };
 checkPsychobotTable();
 
 // Auto-crear tabla de memoria a largo plazo
 const checkPsychobotMemoryTable = () => {
-    const createMemorySql = `
+  const createMemorySql = `
         CREATE TABLE IF NOT EXISTS psychobot_memory (
             id_memory INT AUTO_INCREMENT PRIMARY KEY,
             id_user INT NOT NULL,
@@ -1188,16 +1197,17 @@ const checkPsychobotMemoryTable = () => {
             FOREIGN KEY (id_user) REFERENCES users(id_user) ON DELETE CASCADE
         )
     `;
-    db.query(createMemorySql, (err) => {
-        if (err) console.error("❌ Error creando tabla psychobot_memory:", err.message);
-        else console.log("✅ Tabla psychobot_memory lista.");
-    });
+  db.query(createMemorySql, (err) => {
+    if (err)
+      console.error("❌ Error creando tabla psychobot_memory:", err.message);
+    else console.log("✅ Tabla psychobot_memory lista.");
+  });
 };
 checkPsychobotMemoryTable();
 
 // Auto-crear tabla de alertas para psicólogos
 const checkPsychologistAlertsTable = () => {
-    const createAlertsSql = `
+  const createAlertsSql = `
         CREATE TABLE IF NOT EXISTS psychologist_alerts (
             id_alert INT AUTO_INCREMENT PRIMARY KEY,
             id_user INT NOT NULL,
@@ -1207,102 +1217,115 @@ const checkPsychologistAlertsTable = () => {
             FOREIGN KEY (id_user) REFERENCES users(id_user) ON DELETE CASCADE
         )
     `;
-    db.query(createAlertsSql, (err) => {
-        if (err) console.error("❌ Error creando tabla psychologist_alerts:", err.message);
-        else console.log("✅ Tabla psychologist_alerts lista.");
-    });
+  db.query(createAlertsSql, (err) => {
+    if (err)
+      console.error("❌ Error creando tabla psychologist_alerts:", err.message);
+    else console.log("✅ Tabla psychologist_alerts lista.");
+  });
 };
 checkPsychologistAlertsTable();
 
 // 1. Obtener lista de sesiones para un usuario
 app.get("/api/psychobot/sessions/:userId", (req, res) => {
-    const { userId } = req.params;
-    const sql = "SELECT id_session, title, created_at FROM psychobot_sessions WHERE id_user = ? ORDER BY created_at DESC";
-    db.query(sql, [userId], (err, results) => {
-        if (err) return res.status(500).json({ message: "Error al obtener sesiones" });
-        res.status(200).json(results);
-    });
+  const { userId } = req.params;
+  const sql =
+    "SELECT id_session, title, created_at FROM psychobot_sessions WHERE id_user = ? ORDER BY created_at DESC";
+  db.query(sql, [userId], (err, results) => {
+    if (err)
+      return res.status(500).json({ message: "Error al obtener sesiones" });
+    res.status(200).json(results);
+  });
 });
 
 // 2. Crear una nueva sesión
 app.post("/api/psychobot/sessions", (req, res) => {
-    const { userId, title } = req.body;
-    const sql = "INSERT INTO psychobot_sessions (id_user, title) VALUES (?, ?)";
-    db.query(sql, [userId, title || 'Nueva Conversación'], (err, result) => {
-        if (err) return res.status(500).json({ message: "Error al crear sesión" });
-        res.status(201).json({ id_session: result.insertId, title: title || 'Nueva Conversación' });
-    });
+  const { userId, title } = req.body;
+  const sql = "INSERT INTO psychobot_sessions (id_user, title) VALUES (?, ?)";
+  db.query(sql, [userId, title || "Nueva Conversación"], (err, result) => {
+    if (err) return res.status(500).json({ message: "Error al crear sesión" });
+    res
+      .status(201)
+      .json({
+        id_session: result.insertId,
+        title: title || "Nueva Conversación",
+      });
+  });
 });
 
 // 3. Borrar una sesión
 app.delete("/api/psychobot/sessions/:id", (req, res) => {
-    const { id } = req.params;
-    db.query("DELETE FROM psychobot_sessions WHERE id_session = ?", [id], (err) => {
-        if (err) return res.status(500).json({ message: "Error al borrar sesión" });
-        res.status(200).json({ message: "Sesión eliminada" });
-    });
+  const { id } = req.params;
+  db.query(
+    "DELETE FROM psychobot_sessions WHERE id_session = ?",
+    [id],
+    (err) => {
+      if (err)
+        return res.status(500).json({ message: "Error al borrar sesión" });
+      res.status(200).json({ message: "Sesión eliminada" });
+    },
+  );
 });
 
 // 4. Obtener historial de una sesión específica
 app.get("/api/psychobot/history/:sessionId", (req, res) => {
-    const { sessionId } = req.params;
-    const sql = "SELECT role, message as text FROM psychobot_chats WHERE id_session = ? ORDER BY timestamp ASC";
-    db.query(sql, [sessionId], (err, results) => {
-        if (err) return res.status(500).json({ message: "Error al obtener historial" });
-        res.status(200).json(results.map(row => ({ type: row.role, text: row.text })));
-    });
+  const { sessionId } = req.params;
+  const sql =
+    "SELECT role, message as text FROM psychobot_chats WHERE id_session = ? ORDER BY timestamp ASC";
+  db.query(sql, [sessionId], (err, results) => {
+    if (err)
+      return res.status(500).json({ message: "Error al obtener historial" });
+    res
+      .status(200)
+      .json(results.map((row) => ({ type: row.role, text: row.text })));
+  });
 });
 
 // 5. Enviar mensaje e interactuar con IA
 app.post("/api/psychobot/chat", async (req, res) => {
-    const { userId, message, id_session } = req.body;
-    if (!userId || !message) {
-        return res.status(400).json({ message: "userId y message son requeridos" });
-    }
+  const { userId, message, id_session } = req.body;
+  if (!userId || !message) {
+    return res.status(400).json({ message: "userId y message son requeridos" });
+  }
 
-    // ── Asegurar que existe una sesión activa ──────────────────────────────
-    const ensureSession = (cb) => {
-        if (id_session) return cb(id_session);
-        db.query(
-            "SELECT id_session FROM psychobot_sessions WHERE id_user = ? ORDER BY created_at DESC LIMIT 1",
-            [userId],
-            (err, results) => {
-                if (!err && results.length > 0) {
-                    cb(results[0].id_session);
-                } else {
-                    db.query(
-                        "INSERT INTO psychobot_sessions (id_user, title) VALUES (?, ?)",
-                        [userId, message.substring(0, 30) + '...'],
-                        (errI, resI) => { if (!errI) cb(resI.insertId); }
-                    );
-                }
-            }
-        );
-    };
+  // ── Asegurar que existe una sesión activa ──────────────────────────────
+  const ensureSession = (cb) => {
+    if (id_session) return cb(id_session);
+    db.query(
+      "SELECT id_session FROM psychobot_sessions WHERE id_user = ? ORDER BY created_at DESC LIMIT 1",
+      [userId],
+      (err, results) => {
+        if (!err && results.length > 0) {
+          cb(results[0].id_session);
+        } else {
+          db.query(
+            "INSERT INTO psychobot_sessions (id_user, title) VALUES (?, ?)",
+            [userId, message.substring(0, 30) + "..."],
+            (errI, resI) => {
+              if (!errI) cb(resI.insertId);
+            },
+          );
+        }
+      },
+    );
+  };
 
-    ensureSession(async (activeSessionId) => {
-        // Guardar mensaje del usuario
-        db.query(
-            "INSERT INTO psychobot_chats (id_user, id_session, role, message) VALUES (?, ?, 'user', ?)",
-            [userId, activeSessionId, message],
-            (err) => { if (err) console.error("Error guardando mensaje de usuario:", err); }
-        );
+  ensureSession(async (activeSessionId) => {
 
-        try {
-            // ── Guardia: API Key no configurada ───────────────────────────
-            if (!ai || GEMINI_API_KEY === "API_KEY_AQUI") {
-                const fallback = "Configuración de IA pendiente.";
-                db.query("INSERT INTO psychobot_chats (id_user, id_session, role, message) VALUES (?, ?, 'bot', ?)", [userId, activeSessionId, fallback]);
-                return res.status(200).json({ type: 'bot', text: fallback });
-            }
+    try {
+      // ── Guardia: API Key no configurada ───────────────────────────
+      if (!ai || GEMINI_API_KEY === "API_KEY_AQUI") {
+        const fallback = "Configuración de IA pendiente.";
+        return res.status(200).json({ type: "bot", text: fallback });
+      }
 
-            // ── Helper para promisificar db.query ─────────────────────────
-            const dbQuery = (sql, params) => new Promise((resolve) => {
-                db.query(sql, params, (err, rows) => resolve(err ? [] : rows));
-            });
+      // ── Helper para promisificar db.query ─────────────────────────
+      const dbQuery = (sql, params) =>
+        new Promise((resolve) => {
+          db.query(sql, params, (err, rows) => resolve(err ? [] : rows));
+        });
 
-            // ── Obtener contexto en paralelo (más rápido) ─────────────────
-            const diarySql = `
+      // ── Obtener contexto en paralelo (más rápido) ─────────────────
+      const diarySql = `
                 SELECT de.description, e.emot_name, de.entry_date
                 FROM diary_entries de
                 JOIN diary d ON de.id_diary = d.id_diary
@@ -1310,163 +1333,235 @@ app.post("/api/psychobot/chat", async (req, res) => {
                 WHERE d.id_user = ?
                 ORDER BY de.entry_date DESC LIMIT 5
             `;
-            const [userRows, memoryRows, diaryRows, historyRows] = await Promise.all([
-                dbQuery("SELECT names FROM users WHERE id_user = ?", [userId]),
-                dbQuery("SELECT fact FROM psychobot_memory WHERE id_user = ?", [userId]),
-                dbQuery(diarySql, [userId]),
-                dbQuery("SELECT role, message FROM psychobot_chats WHERE id_session = ? ORDER BY timestamp ASC LIMIT 8", [activeSessionId])
-            ]);
+      const [userRows, memoryRows, diaryRows] = await Promise.all([
+        dbQuery("SELECT names FROM users WHERE id_user = ?", [userId]),
+        dbQuery("SELECT fact FROM psychobot_memory WHERE id_user = ?", [
+          userId,
+        ]),
+        dbQuery(diarySql, [userId]),
+      ]);
 
-            // ── Construir contexto para la IA ─────────────────────────────
-            const userName = userRows.length > 0 ? userRows[0].names : "Usuario";
+      // Usar historial enviado desde el frontend (no de la BD)
+      const clientHistory = req.body.chatHistory || [];
 
-            const memoryStr = memoryRows.length > 0
-                ? "\nRECUERDOS DEL USUARIO:\n" + memoryRows.map(m => `- ${m.fact}`).join("\n") + "\n"
-                : "";
+      // ── Construir contexto para la IA ─────────────────────────────
+      const userName = userRows.length > 0 ? userRows[0].names : "Usuario";
 
-            const diaryStr = diaryRows.length > 0
-                ? "\nDIARIO RECIENTE:\n" + diaryRows.map(d => {
-                    const date = new Date(d.entry_date).toLocaleDateString();
-                    return `- ${date}: ${d.emot_name}${d.description ? ' - ' + d.description : ''}`;
-                }).join("\n") + "\n"
-                : "";
+      const memoryStr =
+        memoryRows.length > 0
+          ? "\nRECUERDOS DEL USUARIO:\n" +
+            memoryRows.map((m) => `- ${m.fact}`).join("\n") +
+            "\n"
+          : "";
 
-            let contextStr = `Eres Psychobot, amigo empático y psicólogo virtual de Psychoway.
+      const diaryStr =
+        diaryRows.length > 0
+          ? "\nDIARIO RECIENTE:\n" +
+            diaryRows
+              .map((d) => {
+                const date = new Date(d.entry_date).toLocaleDateString();
+                return `- ${date}: ${d.emot_name}${d.description ? " - " + d.description : ""}`;
+              })
+              .join("\n") +
+            "\n"
+          : "";
+
+      let contextStr = `Eres Psychobot, amigo empático y psicólogo virtual de Psychoway.
 Nombre del usuario: ${userName}. Habla en español neutro. Usa emojis moderadamente 😊.
 Integra lo que sabes de forma natural. Si el usuario ha estado mal, apóyalo con empatía.
 ${memoryStr}${diaryStr}
-REGISTRO EMOCIONAL: Si el usuario expresa una emoción clara, regístrala automáticamente:
-[DIARY: {"description": "<descripción real en palabras>", "emotion_name": "<Muy Feliz|Feliz|Neutral|Triste|Muy Triste>"}]
-APRENDIZAJE: Para nuevos datos personales usa: [LEARN: "<dato>"]
-EMERGENCIA: Solo en casos críticos usa: [ALERT: {"motivo": "..."}]
+IMPORTANTE SOBRE PRIVACIDAD: NO guardes información automáticamente en el diario ni aprendas datos nuevos sin permiso. Si detectas una emoción importante o un dato personal relevante, DEBES preguntarle primero al usuario si te da permiso para guardarlo.
+Ejemplo: "Noto que hoy te sientes triste. ¿Te gustaría que registre esto en tu diario para que podamos hacerle seguimiento?"
+SOLO cuando el usuario te dé su permiso explícito (ej. "sí", "claro", "guárdalo"), puedes usar las siguientes etiquetas en tu respuesta para guardarlo:
+[DIARY: {"description": "<descripción>", "emotion_name": "<Muy Feliz|Feliz|Neutral|Triste|Muy Triste>"}]
+[LEARN: "<dato nuevo sobre el usuario>"]
+
+EMERGENCIA: Las alertas de riesgo crítico SÍ son automáticas y no requieren permiso. Usa: [ALERT: {"motivo": "..."}]
 
 Chat reciente:
 `;
-            historyRows.forEach(row => {
-                contextStr += `${row.role === 'user' ? 'Usuario' : 'Psychobot'}: ${row.message}\n`;
+      // Usar historial del frontend para contexto
+      const recentHistory = clientHistory.slice(-8);
+      recentHistory.forEach((msg) => {
+        contextStr += `${msg.type === "user" ? "Usuario" : "Psychobot"}: ${msg.text}\n`;
+      });
+      contextStr += `Usuario: ${message}\nPsychobot:`;
+
+      // ── Llamada a Gemini con reintentos automáticos ───────────────
+      const generateWithRetry = async (prompt, maxRetries = 2) => {
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+          try {
+            return await ai.models.generateContent({
+              model: "gemini-flash-latest",
+              contents: prompt,
             });
-            contextStr += `Usuario: ${message}\nPsychobot:`;
-
-            // ── Llamada a Gemini con reintentos automáticos ───────────────
-            const generateWithRetry = async (prompt, maxRetries = 2) => {
-                for (let attempt = 1; attempt <= maxRetries; attempt++) {
-                    try {
-                        return await ai.models.generateContent({
-                            model: 'gemini-flash-latest',
-                            contents: prompt,
-                        });
-                    } catch (retryErr) {
-                        const status = retryErr.status || 0;
-                        const msg = retryErr.message || '';
-                        const is503 = status === 503 || msg.includes('503') || msg.includes('UNAVAILABLE');
-                        const is429 = status === 429 || msg.includes('429') || msg.includes('RESOURCE_EXHAUSTED');
-                        if ((is503 || is429) && attempt < maxRetries) {
-                            const delay = is429 ? 10000 : 3000;
-                            console.log(`⚠️ Gemini ${is429 ? '429' : '503'} - Reintento ${attempt}/${maxRetries} en ${delay / 1000}s...`);
-                            await new Promise(r => setTimeout(r, delay));
-                        } else {
-                            throw retryErr;
-                        }
-                    }
-                }
-            };
-
-            let response;
-            try {
-                response = await generateWithRetry(contextStr);
-            } catch (aiError) {
-                console.error("Error en API de Gemini:", aiError.status || aiError.message);
-                const is503 = aiError.status === 503 || (aiError.message && aiError.message.includes("503"));
-                const aiErrMsg = is503
-                    ? "El servicio de IA está recibiendo mucho tráfico ahora mismo. ¡Inténtalo de nuevo en un momento! 😊"
-                    : "Estoy teniendo dificultades técnicas 😔. Por favor, intenta de nuevo en unos minutos.";
-                db.query("INSERT INTO psychobot_chats (id_user, id_session, role, message) VALUES (?, ?, 'bot', ?)", [userId, activeSessionId, aiErrMsg]);
-                return res.status(200).json({ type: 'bot', text: aiErrMsg, id_session: activeSessionId });
+          } catch (retryErr) {
+            const status = retryErr.status || 0;
+            const msg = retryErr.message || "";
+            const is503 =
+              status === 503 ||
+              msg.includes("503") ||
+              msg.includes("UNAVAILABLE");
+            const is429 =
+              status === 429 ||
+              msg.includes("429") ||
+              msg.includes("RESOURCE_EXHAUSTED");
+            if ((is503 || is429) && attempt < maxRetries) {
+              const delay = is429 ? 10000 : 3000;
+              console.log(
+                `⚠️ Gemini ${is429 ? "429" : "503"} - Reintento ${attempt}/${maxRetries} en ${delay / 1000}s...`,
+              );
+              await new Promise((r) => setTimeout(r, delay));
+            } else {
+              throw retryErr;
             }
-
-            let botReply = response.text || "Lo siento, no pude entender tu solicitud.";
-
-            // ── Procesar [LEARN: "..."] ───────────────────────────────────
-            const learnMatch = botReply.match(/\[LEARN:\s*\"(.*?)\"\s*\]/);
-            if (learnMatch) {
-                db.query("INSERT INTO psychobot_memory (id_user, fact) VALUES (?, ?)", [userId, learnMatch[1]]);
-                botReply = botReply.replace(/\[LEARN:\s*\".*?\"\s*\]/g, '').trim();
-            }
-
-            // ── Procesar [DIARY: {...}] ───────────────────────────────────
-            const diaryMatch = botReply.match(/\[DIARY:\s*(\{.*?\})\s*\]/);
-            if (diaryMatch) {
-                try {
-                    const diaryData = JSON.parse(diaryMatch[1]);
-                    const emotionName = diaryData.emotion_name || 'Neutral';
-                    console.log(`📔 Diario: Emoción='${emotionName}', Desc='${diaryData.description}'`);
-
-                    db.query("SELECT id_emotions FROM emotions WHERE emot_name = ?", [emotionName], (errE, rE) => {
-                        const insertEntry = (id_emotions) => {
-                            db.query("SELECT id_diary FROM diary WHERE id_user = ?", [userId], (errD, rD) => {
-                                if (errD) return;
-                                const addEntry = (id_diary) => {
-                                    db.query(
-                                        "INSERT INTO diary_entries (id_diary, description, id_emotions, entry_date) VALUES (?, ?, ?, NOW())",
-                                        [id_diary, diaryData.description, id_emotions],
-                                        (errIns) => {
-                                            if (errIns) console.error('❌ Error insertando en diario:', errIns);
-                                            else console.log(`✅ Diario guardado (id_emotions=${id_emotions})`);
-                                        }
-                                    );
-                                };
-                                if (rD && rD.length > 0) {
-                                    addEntry(rD[0].id_diary);
-                                } else {
-                                    db.query("INSERT INTO diary (id_user, fecha) VALUES (?, NOW())", [userId], (errI, rI) => {
-                                        if (!errI) addEntry(rI.insertId);
-                                    });
-                                }
-                            });
-                        };
-
-                        if (!errE && rE && rE.length > 0) {
-                            insertEntry(rE[0].id_emotions);
-                        } else {
-                            const estadoMap = { 'Muy Feliz': 'Positivo', 'Feliz': 'Positivo', 'Neutral': 'Neutral', 'Triste': 'Negativo', 'Muy Triste': 'Negativo' };
-                            db.query(
-                                "INSERT INTO emotions (emot_name, emot_estado) VALUES (?, ?)",
-                                [emotionName, estadoMap[emotionName] || 'Neutral'],
-                                (errNew, rNew) => { if (!errNew) insertEntry(rNew.insertId); }
-                            );
-                        }
-                    });
-                } catch (e) {
-                    console.error('❌ Error procesando DIARY tag:', e);
-                }
-                botReply = botReply.replace(/\[DIARY:\s*\{.*?\}\s*\]/g, '').trim();
-            }
-
-            // ── Procesar [ALERT: {...}] ───────────────────────────────────
-            const alertMatch = botReply.match(/\[ALERT:\s*(\{.*?\})\s*\]/);
-            if (alertMatch) {
-                try {
-                    const alertData = JSON.parse(alertMatch[1]);
-                    db.query("INSERT INTO psychologist_alerts (id_user, motivo) VALUES (?, ?)", [userId, alertData.motivo]);
-                } catch (e) {}
-                botReply = botReply.replace(/\[ALERT:\s*\{.*?\}\s*\]/g, '').trim();
-            }
-
-            // ── Guardar respuesta del bot y responder ─────────────────────
-            db.query("INSERT INTO psychobot_chats (id_user, id_session, role, message) VALUES (?, ?, 'bot', ?)", [userId, activeSessionId, botReply]);
-            res.status(200).json({ type: 'bot', text: botReply, id_session: activeSessionId });
-
-        } catch (error) {
-            console.error("Error inesperado en Psychobot:", error);
-            res.status(500).json({ type: 'bot', text: "Ocurrió un error inesperado. Por favor, recarga la página." });
+          }
         }
-    });
+      };
+
+      let response;
+      try {
+        response = await generateWithRetry(contextStr);
+      } catch (aiError) {
+        console.error(
+          "Error en API de Gemini:",
+          aiError.status || aiError.message,
+        );
+        const is503 =
+          aiError.status === 503 ||
+          (aiError.message && aiError.message.includes("503"));
+        const aiErrMsg = is503
+          ? "El servicio de IA está recibiendo mucho tráfico ahora mismo. ¡Inténtalo de nuevo en un momento! 😊"
+          : "Estoy teniendo dificultades técnicas 😔. Por favor, intenta de nuevo en unos minutos.";
+        return res
+          .status(200)
+          .json({ type: "bot", text: aiErrMsg, id_session: activeSessionId });
+      }
+
+      let botReply =
+        response.text || "Lo siento, no pude entender tu solicitud.";
+
+      // ── Procesar [LEARN: "..."] ───────────────────────────────────
+      const learnMatch = botReply.match(/\[LEARN:\s*\"(.*?)\"\s*\]/);
+      if (learnMatch) {
+        db.query("INSERT INTO psychobot_memory (id_user, fact) VALUES (?, ?)", [
+          userId,
+          learnMatch[1],
+        ]);
+        botReply = botReply.replace(/\[LEARN:\s*\".*?\"\s*\]/g, "").trim();
+      }
+
+      // ── Procesar [DIARY: {...}] ───────────────────────────────────
+      const diaryMatch = botReply.match(/\[DIARY:\s*(\{.*?\})\s*\]/);
+      if (diaryMatch) {
+        try {
+          const diaryData = JSON.parse(diaryMatch[1]);
+          const emotionName = diaryData.emotion_name || "Neutral";
+          console.log(
+            `📔 Diario: Emoción='${emotionName}', Desc='${diaryData.description}'`,
+          );
+
+          db.query(
+            "SELECT id_emotions FROM emotions WHERE emot_name = ?",
+            [emotionName],
+            (errE, rE) => {
+              const insertEntry = (id_emotions) => {
+                db.query(
+                  "SELECT id_diary FROM diary WHERE id_user = ?",
+                  [userId],
+                  (errD, rD) => {
+                    if (errD) return;
+                    const addEntry = (id_diary) => {
+                      db.query(
+                        "INSERT INTO diary_entries (id_diary, description, id_emotions, entry_date) VALUES (?, ?, ?, NOW())",
+                        [id_diary, diaryData.description, id_emotions],
+                        (errIns) => {
+                          if (errIns)
+                            console.error(
+                              "❌ Error insertando en diario:",
+                              errIns,
+                            );
+                          else
+                            console.log(
+                              `✅ Diario guardado (id_emotions=${id_emotions})`,
+                            );
+                        },
+                      );
+                    };
+                    if (rD && rD.length > 0) {
+                      addEntry(rD[0].id_diary);
+                    } else {
+                      db.query(
+                        "INSERT INTO diary (id_user, fecha) VALUES (?, NOW())",
+                        [userId],
+                        (errI, rI) => {
+                          if (!errI) addEntry(rI.insertId);
+                        },
+                      );
+                    }
+                  },
+                );
+              };
+
+              if (!errE && rE && rE.length > 0) {
+                insertEntry(rE[0].id_emotions);
+              } else {
+                const estadoMap = {
+                  "Muy Feliz": "Positivo",
+                  Feliz: "Positivo",
+                  Neutral: "Neutral",
+                  Triste: "Negativo",
+                  "Muy Triste": "Negativo",
+                };
+                db.query(
+                  "INSERT INTO emotions (emot_name, emot_estado) VALUES (?, ?)",
+                  [emotionName, estadoMap[emotionName] || "Neutral"],
+                  (errNew, rNew) => {
+                    if (!errNew) insertEntry(rNew.insertId);
+                  },
+                );
+              }
+            },
+          );
+        } catch (e) {
+          console.error("❌ Error procesando DIARY tag:", e);
+        }
+        botReply = botReply.replace(/\[DIARY:\s*\{.*?\}\s*\]/g, "").trim();
+      }
+
+      // ── Procesar [ALERT: {...}] ───────────────────────────────────
+      const alertMatch = botReply.match(/\[ALERT:\s*(\{.*?\})\s*\]/);
+      if (alertMatch) {
+        try {
+          const alertData = JSON.parse(alertMatch[1]);
+          db.query(
+            "INSERT INTO psychologist_alerts (id_user, motivo) VALUES (?, ?)",
+            [userId, alertData.motivo],
+          );
+        } catch (e) {}
+        botReply = botReply.replace(/\[ALERT:\s*\{.*?\}\s*\]/g, "").trim();
+      }
+
+      // ── Responder al cliente (no se guarda la respuesta del bot) ──
+      res
+        .status(200)
+        .json({ type: "bot", text: botReply, id_session: activeSessionId });
+    } catch (error) {
+      console.error("Error inesperado en Psychobot:", error);
+      res
+        .status(500)
+        .json({
+          type: "bot",
+          text: "Ocurrió un error inesperado. Por favor, recarga la página.",
+        });
+    }
+  });
 });
 
 // ==================== PSYCHOLOGIST ALERTS ENDPOINTS ====================
 
 app.get("/api/psychologist/alerts", (req, res) => {
-    const sql = `
+  const sql = `
         SELECT a.id_alert, a.id_user, a.motivo, a.leido, a.timestamp, 
                CONCAT(u.names, ' ', u.last_names) as aprendiz_nombre, 
                u.document
@@ -1474,24 +1569,28 @@ app.get("/api/psychologist/alerts", (req, res) => {
         JOIN users u ON a.id_user = u.id_user
         ORDER BY a.leido ASC, a.timestamp DESC
     `;
-    db.query(sql, (err, results) => {
-        if (err) {
-            console.error("Error fetching alerts:", err);
-            return res.status(500).json({ message: "Error fetching alerts" });
-        }
-        res.status(200).json(results);
-    });
+  db.query(sql, (err, results) => {
+    if (err) {
+      console.error("Error fetching alerts:", err);
+      return res.status(500).json({ message: "Error fetching alerts" });
+    }
+    res.status(200).json(results);
+  });
 });
 
 app.put("/api/psychologist/alerts/:id/read", (req, res) => {
-    const { id } = req.params;
-    db.query("UPDATE psychologist_alerts SET leido = TRUE WHERE id_alert = ?", [id], (err) => {
-        if (err) return res.status(500).json({ message: "Error updating alert" });
-        res.status(200).json({ message: "Alert marked as read" });
-    });
+  const { id } = req.params;
+  db.query(
+    "UPDATE psychologist_alerts SET leido = TRUE WHERE id_alert = ?",
+    [id],
+    (err) => {
+      if (err) return res.status(500).json({ message: "Error updating alert" });
+      res.status(200).json({ message: "Alert marked as read" });
+    },
+  );
 });
 
 const PORT = 5000;
 app.listen(PORT, () =>
-  console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`)
+  console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`),
 );

@@ -1,10 +1,10 @@
 import mysql from "mysql2";
 
 const db = mysql.createConnection({
-    host: "localhost",
-    user: "root",
-    password: "",
-    database: "psychoway"
+  host: "localhost",
+  user: "root",
+  password: "",
+  database: "psychoway",
 });
 
 db.connect();
@@ -24,12 +24,12 @@ AND t1.email = t2.email;
 `;
 
 db.query(aggressiveCleanup, (err, results) => {
+  if (err) console.error(err);
+  else console.log("Deleted duplicate documents:", results.affectedRows);
+
+  db.query(aggressiveCleanupEmail, (err, resultsEmail) => {
     if (err) console.error(err);
-    else console.log("Deleted duplicate documents:", results.affectedRows);
-    
-    db.query(aggressiveCleanupEmail, (err, resultsEmail) => {
-        if (err) console.error(err);
-        else console.log("Deleted duplicate emails:", resultsEmail.affectedRows);
-        db.end();
-    });
+    else console.log("Deleted duplicate emails:", resultsEmail.affectedRows);
+    db.end();
+  });
 });

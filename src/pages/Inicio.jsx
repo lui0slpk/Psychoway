@@ -4,104 +4,102 @@ import { useAuth } from "../context/AuthContext";
 import logo_sena from "../assets/img/img_sena.png";
 
 function Inicio() {
+  const navigate = useNavigate();
+  const { login } = useAuth();
 
-    const navigate = useNavigate();
-    const { login } = useAuth();
+  const [form, setForm] = useState({
+    documento: "",
+    password: "",
+  });
 
-    const [form, setForm] = useState({
-        documento: "",
-        password: "",
+  const [showPassword, setShowPassword] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+  const [showError, setShowError] = useState(false);
+  const [successMsg, setSuccessMsg] = useState("");
+  const [showSuccess, setShowSuccess] = useState(false);
+
+  const mostrarError = (mensaje) => {
+    setErrorMsg(mensaje);
+    setShowError(true);
+    setTimeout(() => {
+      setShowError(false);
+    }, 5000);
+  };
+
+  const mostrarExito = (mensaje) => {
+    setSuccessMsg(mensaje);
+    setShowSuccess(true);
+  };
+
+  const handleChange = (e) => {
+    // Limpiar error al escribir
+    if (showError) setShowError(false);
+    setForm({
+      ...form,
+      [e.target.id]: e.target.value,
     });
+  };
 
-    const [showPassword, setShowPassword] = useState(false);
-    const [errorMsg, setErrorMsg] = useState("");
-    const [showError, setShowError] = useState(false);
-    const [successMsg, setSuccessMsg] = useState("");
-    const [showSuccess, setShowSuccess] = useState(false);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-    const mostrarError = (mensaje) => {
-        setErrorMsg(mensaje);
-        setShowError(true);
-        setTimeout(() => {
-            setShowError(false);
-        }, 5000);
-    };
+    try {
+      console.log("Enviando datos:", form);
 
-    const mostrarExito = (mensaje) => {
-        setSuccessMsg(mensaje);
-        setShowSuccess(true);
-    };
+      const response = await fetch("http://localhost:5000/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          document: form.documento,
+          password: form.password,
+        }),
+      });
 
-    const handleChange = (e) => {
-        // Limpiar error al escribir
-        if (showError) setShowError(false);
-        setForm({
-            ...form,
-            [e.target.id]: e.target.value,
-        });
-    };
+      console.log("Status:", response.status);
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
+      const text = await response.text();
+      console.log("Respuesta cruda del servidor:", text);
 
-        try {
-            console.log("Enviando datos:", form);
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        mostrarError("Error de comunicación con el servidor.");
+        return;
+      }
 
-            const response = await fetch("http://localhost:5000/login", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    document: form.documento,
-                    password: form.password,
-                }),
-            });
+      if (!response.ok) {
+        mostrarError(data.message || "Documento o contraseña incorrectos.");
+        return;
+      }
 
-            console.log("Status:", response.status);
+      login(data.user);
+      console.log("Usuario:", data.user);
 
-            const text = await response.text();
-            console.log("Respuesta cruda del servidor:", text);
+      const nombre = data.user.names || "usuario";
+      mostrarExito(`¡Bienvenido/a, ${nombre}!`);
 
-            let data;
-            try {
-                data = JSON.parse(text);
-            } catch {
-                mostrarError("Error de comunicación con el servidor.");
-                return;
-            }
+      const roleRoutes = {
+        aprendiz: "/diario",
+        psicologo: "/psi-seguimiento",
+        administrador: "/gestion",
+      };
 
-            if (!response.ok) {
-                mostrarError(data.message || "Documento o contraseña incorrectos.");
-                return;
-            }
+      const destination = roleRoutes[data.user.rol] || "/diario";
 
-            login(data.user);
-            console.log("Usuario:", data.user);
+      // Esperar 1.5s para que el usuario vea la notificación
+      setTimeout(() => {
+        navigate(destination);
+      }, 1500);
+    } catch (error) {
+      console.error("Error en fetch:", error);
+      mostrarError("No se pudo conectar con el servidor.");
+    }
+  };
 
-            const nombre = data.user.names || "usuario";
-            mostrarExito(`¡Bienvenido/a, ${nombre}!`);
-
-            const roleRoutes = {
-                aprendiz: "/diario",
-                psicologo: "/psi-seguimiento",
-                administrador: "/gestion"
-            };
-
-            const destination = roleRoutes[data.user.rol] || "/diario";
-
-            // Esperar 1.5s para que el usuario vea la notificación
-            setTimeout(() => {
-                navigate(destination);
-            }, 1500);
-
-        } catch (error) {
-            console.error("Error en fetch:", error);
-            mostrarError("No se pudo conectar con el servidor.");
-        }
-    };
-
-    return (
-        <>
-            <style>{`
+  return (
+    <>
+      <style>{`
                 .btn-inicio {
                     background-color: #005222;
                     color: white;
@@ -154,137 +152,160 @@ function Inicio() {
                 }
             `}</style>
 
-            <div className="container vh-100 d-flex align-items-center justify-content-center">
-                <div className="row shadow-lg rounded-4 overflow-hidden w-100" style={{ maxWidth: "960px" }}>
-                    
-                    <div className="col-md-6 d-none d-md-flex bg-light align-items-center justify-content-center p-4">
-                        <img 
-                            src={logo_sena} 
-                            alt="logo" 
-                            className="img-fluid" 
-                            style={{ maxHeight: '80%', maxWidth: '80%', objectFit: 'contain', borderRadius: '20px' }} 
-                        />
-                    </div>
+      <div className="container vh-100 d-flex align-items-center justify-content-center">
+        <div
+          className="row shadow-lg rounded-4 overflow-hidden w-100"
+          style={{ maxWidth: "960px" }}
+        >
+          <div className="col-md-6 d-none d-md-flex bg-light align-items-center justify-content-center p-4">
+            <img
+              src={logo_sena}
+              alt="logo"
+              className="img-fluid"
+              style={{
+                maxHeight: "80%",
+                maxWidth: "80%",
+                objectFit: "contain",
+                borderRadius: "20px",
+              }}
+            />
+          </div>
 
-                    <div className="col-md-6 bg-white p-5 d-flex flex-column justify-content-center">
-                        <div className="contain p-5">
-                            
-                            <h3 className="fw-bold mb-2 text-light">
-                                Iniciar Sesión en <br />
-                                <span>Psychoway</span>
-                            </h3>
+          <div className="col-md-6 bg-white p-5 d-flex flex-column justify-content-center">
+            <div className="contain p-5">
+              <h3 className="fw-bold mb-2 text-light">
+                Iniciar Sesión en <br />
+                <span>Psychoway</span>
+              </h3>
 
-                            <p className="text-light mb-4">
-                                Inicia sesión con tu documento de <br />
-                                identidad y contraseña
-                            </p>
+              <p className="text-light mb-4">
+                Inicia sesión con tu documento de <br />
+                identidad y contraseña
+              </p>
 
-                            <form onSubmit={handleSubmit}>
+              <form onSubmit={handleSubmit}>
+                {showError && (
+                  <div
+                    className="alert alert-danger login-error-alert d-flex align-items-center py-2 px-3 mb-3"
+                    role="alert"
+                  >
+                    <i className="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
+                    <div>{errorMsg}</div>
+                    <button
+                      type="button"
+                      className="btn-close btn-close-sm ms-auto"
+                      aria-label="Cerrar"
+                      onClick={() => setShowError(false)}
+                      style={{ fontSize: "0.65rem" }}
+                    ></button>
+                  </div>
+                )}
 
-                                {showError && (
-                                    <div className="alert alert-danger login-error-alert d-flex align-items-center py-2 px-3 mb-3" role="alert">
-                                        <i className="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
-                                        <div>{errorMsg}</div>
-                                        <button
-                                            type="button"
-                                            className="btn-close btn-close-sm ms-auto"
-                                            aria-label="Cerrar"
-                                            onClick={() => setShowError(false)}
-                                            style={{ fontSize: '0.65rem' }}
-                                        ></button>
-                                    </div>
-                                )}
+                {showSuccess && (
+                  <div
+                    className="alert login-success-alert d-flex align-items-center py-2 px-3 mb-3"
+                    role="alert"
+                  >
+                    <i className="bi bi-check-circle-fill me-2 fs-5"></i>
+                    <div>{successMsg}</div>
+                  </div>
+                )}
 
-                                {showSuccess && (
-                                    <div className="alert login-success-alert d-flex align-items-center py-2 px-3 mb-3" role="alert">
-                                        <i className="bi bi-check-circle-fill me-2 fs-5"></i>
-                                        <div>{successMsg}</div>
-                                    </div>
-                                )}
-
-
-                                <div className="text-light mb-3">
-                                    <label htmlFor="documento" className="form-label">
-                                        Documento de identidad
-                                    </label>
-                                    <div className="input-group">
-                                        <span className="input-group-text">
-                                            <i className="bi bi-person-badge" style={{ color: "#007832" }}></i>
-                                        </span>
-                                        <input
-                                            type="number"
-                                            className="form-control"
-                                            id="documento"
-                                            placeholder="123456789"
-                                            value={form.documento}
-                                            onChange={handleChange}
-                                            required
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="text-light mb-3">
-                                    <label htmlFor="password" className="form-label">
-                                        Contraseña
-                                    </label>
-                                    <div className="input-group">
-                                        <span className="input-group-text">
-                                            <i className="bi bi-lock-fill" style={{ color: "#007832" }}></i>
-                                        </span>
-
-                                        <input
-                                            type={showPassword ? "text" : "password"}
-                                            className="form-control border-end-0"
-                                            id="password"
-                                            placeholder="********"
-                                            value={form.password}
-                                            onChange={handleChange}
-                                            required
-                                        />
-
-                                        <span 
-                                            className="input-group-text bg-white border-start-0" 
-                                            style={{ cursor: "pointer" }}
-                                            onClick={() => setShowPassword(!showPassword)}
-                                        >
-                                            <i className={`bi ${showPassword ? 'bi-eye-slash' : 'bi-eye'}`} style={{ color: "#007832" }}></i>
-                                        </span>
-                                    </div>
-                                </div>
-
-                                <div className="mb-3">
-                                    <Link to="/recuperar-password" className="text-decoration-none fw-bold text-dark">
-                                        ¿Olvidaste tu contraseña?
-                                    </Link>
-                                </div>
-
-                                <div className="d-grid mb-3">
-                                    <button type="submit" className="btn btn-inicio">
-                                        Iniciar sesión
-                                    </button>
-                                </div>
-
-                                <hr />
-
-                                <div className="text-center">
-                                    <span className="text-light">¿No tienes una cuenta? </span>
-                                    <Link to="/registro" className="text-decoration-none fw-bold text-dark">
-                                        Crea una cuenta
-                                    </Link>
-                                </div>
-
-                                <div className="text-center mt-4 small text-light">
-                                    Psychoway © 2024
-                                </div>
-
-                            </form>
-                        </div>
-                    </div>
-
+                <div className="text-light mb-3">
+                  <label htmlFor="documento" className="form-label">
+                    Documento de identidad
+                  </label>
+                  <div className="input-group">
+                    <span className="input-group-text">
+                      <i
+                        className="bi bi-person-badge"
+                        style={{ color: "#007832" }}
+                      ></i>
+                    </span>
+                    <input
+                      type="number"
+                      className="form-control"
+                      id="documento"
+                      placeholder="123456789"
+                      value={form.documento}
+                      onChange={handleChange}
+                      required
+                    />
+                  </div>
                 </div>
+
+                <div className="text-light mb-3">
+                  <label htmlFor="password" className="form-label">
+                    Contraseña
+                  </label>
+                  <div className="input-group">
+                    <span className="input-group-text">
+                      <i
+                        className="bi bi-lock-fill"
+                        style={{ color: "#007832" }}
+                      ></i>
+                    </span>
+
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      className="form-control border-end-0"
+                      id="password"
+                      placeholder="********"
+                      value={form.password}
+                      onChange={handleChange}
+                      required
+                    />
+
+                    <span
+                      className="input-group-text bg-white border-start-0"
+                      style={{ cursor: "pointer" }}
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      <i
+                        className={`bi ${showPassword ? "bi-eye-slash" : "bi-eye"}`}
+                        style={{ color: "#007832" }}
+                      ></i>
+                    </span>
+                  </div>
+                </div>
+
+                <div className="mb-3">
+                  <Link
+                    to="/recuperar-password"
+                    className="text-decoration-none fw-bold text-dark"
+                  >
+                    ¿Olvidaste tu contraseña?
+                  </Link>
+                </div>
+
+                <div className="d-grid mb-3">
+                  <button type="submit" className="btn btn-inicio">
+                    Iniciar sesión
+                  </button>
+                </div>
+
+                <hr />
+
+                <div className="text-center">
+                  <span className="text-light">¿No tienes una cuenta? </span>
+                  <Link
+                    to="/registro"
+                    className="text-decoration-none fw-bold text-dark"
+                  >
+                    Crea una cuenta
+                  </Link>
+                </div>
+
+                <div className="text-center mt-4 small text-light">
+                  Psychoway © 2024
+                </div>
+              </form>
             </div>
-        </>
-    );
+          </div>
+        </div>
+      </div>
+    </>
+  );
 }
 
 export default Inicio;

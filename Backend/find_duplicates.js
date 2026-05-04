@@ -1,10 +1,10 @@
 import mysql from "mysql2";
 
 const db = mysql.createConnection({
-    host: "localhost",
-    user: "root",
-    password: "",
-    database: "psychoway"
+  host: "localhost",
+  user: "root",
+  password: "",
+  database: "psychoway",
 });
 
 db.connect();
@@ -24,12 +24,12 @@ const queryEmail = `
 `;
 
 db.query(query, (err, results) => {
+  if (err) console.error(err);
+  else console.log("Duplicate Documents:", results);
+
+  db.query(queryEmail, (err, resultsEmail) => {
     if (err) console.error(err);
-    else console.log("Duplicate Documents:", results);
-    
-    db.query(queryEmail, (err, resultsEmail) => {
-        if (err) console.error(err);
-        else console.log("Duplicate Emails:", resultsEmail);
-        db.end();
-    });
+    else console.log("Duplicate Emails:", resultsEmail);
+    db.end();
+  });
 });
