@@ -3,8 +3,10 @@ import { Link } from "react-router-dom";
 import MainLayout from "../../layouts/MainLayout";
 import { motion } from "framer-motion";
 import { UserPlus, Edit3, Eye, EyeOff, CheckCircle } from "lucide-react";
+import { useAuth } from "../../context/AuthContext";
 
 function GestionPage() {
+  const { authFetch } = useAuth();
   const [showSuccess, setShowSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [touched, setTouched] = useState({});
@@ -33,7 +35,7 @@ function GestionPage() {
     e.preventDefault(); setTouched({ password: true, documento: true });
     if (!passwordValida || !documentoValido) { alert("Por favor corrige los errores en el formulario antes de continuar."); return; }
     try {
-      const response = await fetch("http://localhost:5000/api/users/create", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(formData) });
+      const response = await authFetch("http://localhost:5000/api/users/create", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(formData) });
       const data = await response.json();
       if (response.ok) {
         setShowSuccess(true); setFormData({ rol: "", documento: "", tipoDocumento: "", nombres: "", apellidos: "", fechaNacimiento: "", correo: "", password: "" }); setTouched({});

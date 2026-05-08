@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import { Calendar, Clock, Users, FileText, Search, Video, RefreshCw } from "lucide-react";
 
 function PsiAgendaPage() {
-  const { user } = useAuth();
+  const { user, authFetch } = useAuth();
   const [formData, setFormData] = useState({ documentoAprendiz: "", dia: "", hora: "08:00", descripcion: "" });
   const [foundApprentice, setFoundApprentice] = useState(null);
   const [aprendizNombre, setAprendizNombre] = useState("No seleccionado");
@@ -20,12 +20,12 @@ function PsiAgendaPage() {
 
   const fetchHistory = React.useCallback(async () => {
     const pid = user.id || user.id_user;
-    try { const r = await fetch(`http://localhost:5000/api/meetings/professional-history/${pid}`); setHistory(await r.json()); } catch (e) { console.error("Error:", e); }
+    try { const r = await authFetch(`http://localhost:5000/api/meetings/professional-history/${pid}`); setHistory(await r.json()); } catch (e) { console.error("Error:", e); }
   }, [user]);
 
   const fetchOccupiedSlots = React.useCallback(async () => {
     const pid = user.id || user.id_user;
-    try { const r = await fetch(`http://localhost:5000/api/meetings/psychologist/${pid}`); setOccupiedSlots(await r.json()); } catch (e) { console.error("Error:", e); }
+    try { const r = await authFetch(`http://localhost:5000/api/meetings/psychologist/${pid}`); setOccupiedSlots(await r.json()); } catch (e) { console.error("Error:", e); }
   }, [user]);
 
   useEffect(() => { if (user && (user.id || user.id_user)) { fetchHistory(); fetchOccupiedSlots(); } }, [user, fetchHistory, fetchOccupiedSlots]);
@@ -35,7 +35,7 @@ function PsiAgendaPage() {
   const handleBuscarAprendiz = async () => {
     if (!formData.documentoAprendiz) { alert("Ingresa un documento para buscar."); return; }
     try {
-      const r = await fetch(`http://localhost:5000/api/users/search/${formData.documentoAprendiz}`);
+      const r = await authFetch(`http://localhost:5000/api/users/search/${formData.documentoAprendiz}`);
       const data = await r.json();
       if (r.ok) { setFoundApprentice(data); setAprendizNombre(`${data.nombres} ${data.apellidos}`); alert("Aprendiz encontrado: " + data.nombres + " " + data.apellidos); }
       else { setFoundApprentice(null); setAprendizNombre("No encontrado"); alert(data.message || "Aprendiz no encontrado"); }
@@ -47,7 +47,7 @@ function PsiAgendaPage() {
     if (!foundApprentice) { alert("Primero debes buscar y encontrar un aprendiz válido."); return; }
     const payload = { userId: foundApprentice.id_user, professionalId: user.id || user.id_user, day: formData.dia, hour: formData.hora, description: formData.descripcion };
     try {
-      const r = await fetch("http://localhost:5000/api/meetings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      const r = await authFetch("http://localhost:5000/api/meetings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       const data = await r.json();
       if (r.ok) { alert("¡Cita agendada con éxito!"); fetchHistory(); fetchOccupiedSlots(); setFormData({ ...formData, descripcion: "" }); }
       else alert("Error: " + data.message);

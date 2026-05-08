@@ -73,7 +73,7 @@ function Inicio() {
         return;
       }
 
-      login(data.user);
+      login(data.user, data.token);
       console.log("Usuario:", data.user);
 
       const nombre = data.user.names || "usuario";

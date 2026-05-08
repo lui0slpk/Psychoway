@@ -8,7 +8,7 @@ import { Calendar, Clock, Users, FileText, CheckCircle, Video, Search, RefreshCw
 const WORKING_HOURS = ["08:00","09:00","10:00","11:00","13:00","14:00","15:00","16:00"];
 
 function AgendaPage() {
-  const { user } = useAuth();
+  const { user, authFetch } = useAuth();
   const [psychologists, setPsychologists] = useState([]);
   const [occupiedSlots, setOccupiedSlots] = useState([]);
   const [history, setHistory] = useState([]);
@@ -21,16 +21,16 @@ function AgendaPage() {
   const iV = { hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0 } };
 
   const fetchPsychologists = React.useCallback(async () => {
-    try { const r = await fetch("http://localhost:5000/api/psychologists"); setPsychologists(await r.json()); } catch (e) { console.error("Error:", e); }
+    try { const r = await authFetch("http://localhost:5000/api/psychologists"); setPsychologists(await r.json()); } catch (e) { console.error("Error:", e); }
   }, []);
 
   const fetchHistory = React.useCallback(async () => {
     if (!user) return;
-    try { const r = await fetch(`http://localhost:5000/api/meetings/user/${user.id || user.id_user}`); setHistory(await r.json()); } catch (e) { console.error("Error:", e); }
+    try { const r = await authFetch(`http://localhost:5000/api/meetings/user/${user.id || user.id_user}`); setHistory(await r.json()); } catch (e) { console.error("Error:", e); }
   }, [user]);
 
   const fetchOccupiedSlots = React.useCallback(async (id) => {
-    try { const r = await fetch(`http://localhost:5000/api/meetings/psychologist/${id}`); setOccupiedSlots(await r.json()); } catch (e) { console.error("Error:", e); }
+    try { const r = await authFetch(`http://localhost:5000/api/meetings/psychologist/${id}`); setOccupiedSlots(await r.json()); } catch (e) { console.error("Error:", e); }
   }, []);
 
   const calculateAvailableHours = React.useCallback(() => {
@@ -50,7 +50,7 @@ function AgendaPage() {
     if (!formData.dia || !formData.hora) { alert("Por favor asigna un horario disponible desde el panel derecho."); return; }
     const payload = { userId: user.id || user.id_user, professionalId: searchPsychologist, day: formData.dia, hour: formData.hora, description: formData.descripcion };
     try {
-      const r = await fetch("http://localhost:5000/api/meetings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      const r = await authFetch("http://localhost:5000/api/meetings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       const data = await r.json();
       if (r.ok) { alert("¡Cita agendada con éxito!"); fetchHistory(); fetchOccupiedSlots(searchPsychologist); setFormData({ dia: "", hora: "", descripcion: "" }); }
       else alert("Error: " + data.message);

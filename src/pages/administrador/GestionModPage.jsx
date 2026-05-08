@@ -3,8 +3,10 @@ import { Link } from "react-router-dom";
 import MainLayout from "../../layouts/MainLayout";
 import { motion, AnimatePresence } from "framer-motion";
 import { UserPlus, Edit3, Search, Eye, EyeOff, CheckCircle, AlertTriangle, AlertCircle, Save, Trash2 } from "lucide-react";
+import { useAuth } from "../../context/AuthContext";
 
 function GestionModPage() {
+  const { authFetch } = useAuth();
   const [buscarDocumento, setBuscarDocumento] = useState("");
   const [usuarioEncontrado, setUsuarioEncontrado] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -36,7 +38,7 @@ function GestionModPage() {
   const handleBuscar = async () => {
     if (!buscarDocumento) { setErrorModalMessage("Por favor ingrese un número de documento"); setShowErrorModal(true); return; }
     try {
-      const response = await fetch(`http://localhost:5000/api/users/search/${buscarDocumento}`);
+      const response = await authFetch(`http://localhost:5000/api/users/search/${buscarDocumento}`);
       if (!response.ok) {
         if (response.status === 404) {
           const ct = response.headers.get("content-type");
@@ -59,7 +61,7 @@ function GestionModPage() {
     if (!documentoValido || (formData.password && !passwordValida)) { alert("Corrige los errores."); return; }
     if (formData.password && formData.password !== formData.confirmPassword) { alert("Las contraseñas no coinciden"); return; }
     try {
-      const r = await fetch(`http://localhost:5000/api/users/update/${userId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(formData) });
+      const r = await authFetch(`http://localhost:5000/api/users/update/${userId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(formData) });
       const data = await r.json();
       if (r.ok) { setSuccessMessage("¡Usuario Actualizado!"); setShowSuccess(true); setTimeout(() => { setShowSuccess(false); setUsuarioEncontrado(false); setBuscarDocumento(""); }, 2000); }
       else alert(`Error: ${data.message}`);
@@ -69,7 +71,7 @@ function GestionModPage() {
   const executeDelete = async () => {
     setShowDeleteConfirm(false);
     try {
-      const r = await fetch(`http://localhost:5000/api/users/delete/${userId}`, { method: "DELETE" });
+      const r = await authFetch(`http://localhost:5000/api/users/delete/${userId}`, { method: "DELETE" });
       const data = await r.json();
       if (r.ok) { setSuccessMessage("¡Usuario Eliminado!"); setShowSuccess(true); setTimeout(() => { setShowSuccess(false); setUsuarioEncontrado(false); setBuscarDocumento(""); setUserId(null); }, 2000); }
       else alert(`Error: ${data.message}`);

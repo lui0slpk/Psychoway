@@ -28,7 +28,7 @@ import {
 } from "lucide-react";
 
 function SeguimientoPage() {
-  const { user } = useAuth();
+  const { user, authFetch } = useAuth();
   const [historial, setHistorial] = useState([]);
   const [objetivos, setObjetivos] = useState([]);
   const [pagEmoc, setPagEmoc] = useState(1);
@@ -79,7 +79,7 @@ function SeguimientoPage() {
 
     const fetchHistorial = async () => {
       try {
-        const res = await fetch(
+        const res = await authFetch(
           `http://localhost:5000/api/diary/entries/${userId}`,
         );
         if (res.ok) setHistorial(await res.json());
@@ -90,7 +90,7 @@ function SeguimientoPage() {
 
     const fetchObjetivos = async () => {
       try {
-        const res = await fetch(
+        const res = await authFetch(
           `http://localhost:5000/api/objectives/${userId}`,
         );
         if (res.ok) setObjetivos(await res.json());

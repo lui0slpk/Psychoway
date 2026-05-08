@@ -4,11 +4,69 @@ import { GoogleGenAI } from "@google/genai";
 import mysql from "mysql2";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
+import jwt from "jsonwebtoken";
 import { sendPasswordResetEmail } from "./mailer.js";
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+// Clave secreta para JWT (en producción usar variable de entorno)
+const JWT_SECRET = process.env.JWT_SECRET || "psychoway_secret_key_2024_s3cur3";
+const JWT_EXPIRES_IN = "8h"; // Token expira en 8 horas
+
+// ==================== AUTH MIDDLEWARE ====================
+
+/**
+ * Middleware para verificar token JWT
+ * Se aplica a todas las rutas /api/* excepto las públicas
+ */
+function authMiddleware(req, res, next) {
+  // Rutas públicas que no requieren autenticación
+  const publicPaths = ["/api/password/forgot", "/api/password/reset"];
+  if (publicPaths.includes(req.path)) {
+    return next();
+  }
+
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ message: "Token no proporcionado. Inicie sesión." });
+  }
+
+  const token = authHeader.split(" ")[1];
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.userId = decoded.userId;
+    req.userRole = decoded.role;
+    next();
+  } catch (error) {
+    if (error.name === "TokenExpiredError") {
+      return res.status(401).json({ message: "Sesión expirada. Inicie sesión nuevamente." });
+    }
+    return res.status(401).json({ message: "Token inválido. Inicie sesión nuevamente." });
+  }
+}
+
+// Aplicar middleware a TODAS las rutas /api/* 
+// Las rutas públicas (/login, /register, /recuperar-password, /reset-password) NO usan /api/
+app.use("/api", authMiddleware);
+
+// ==================== AUTH VERIFY ENDPOINT ====================
+
+/**
+ * Verificar si el token es válido
+ * El frontend llama a esto al cargar la app para confirmar la sesión
+ */
+app.get("/api/auth/verify", (req, res) => {
+  // Si llega aquí, el middleware ya validó el token
+  res.status(200).json({
+    valid: true,
+    userId: req.userId,
+    role: req.userRole,
+  });
+});
 
 // Conexión a la base de datos
 const db = mysql.createConnection({
@@ -26,6 +84,18 @@ db.connect((err) => {
     );
   } else {
     console.log("✅ Conectado a MySQL");
+    // Ejecutar inicializaciones de BD sólo cuando estemos conectados
+    setTimeout(() => {
+      if(typeof cleanupDocumentType !== "undefined") cleanupDocumentType();
+      if(typeof checkMeetingsTable !== "undefined") checkMeetingsTable();
+      if(typeof checkDiaryVisibilityColumn !== "undefined") checkDiaryVisibilityColumn();
+      if(typeof checkObjetivosTable !== "undefined") checkObjetivosTable();
+      if(typeof checkPsychobotSessionsTable !== "undefined") checkPsychobotSessionsTable();
+      if(typeof checkPsychobotTable !== "undefined") checkPsychobotTable();
+      if(typeof checkPsychobotMemoryTable !== "undefined") checkPsychobotMemoryTable();
+      if(typeof checkPsychologistAlertsTable !== "undefined") checkPsychologistAlertsTable();
+      if(typeof checkNotificationsTable !== "undefined") checkNotificationsTable();
+    }, 500);
   }
 });
 
@@ -148,9 +218,17 @@ app.post("/login", (req, res) => {
     const finalUserId = user.id_user || user.id;
     console.log(`✅ ID de usuario a enviar: ${finalUserId}`);
 
-    // Todo OK → enviar información básica del usuario
+    // Generar token JWT
+    const token = jwt.sign(
+      { userId: finalUserId, role: finalRole, document: user.document },
+      JWT_SECRET,
+      { expiresIn: JWT_EXPIRES_IN }
+    );
+
+    // Todo OK → enviar información básica del usuario + token
     return res.status(200).json({
       message: "Login exitoso",
+      token,
       user: {
         id: finalUserId,
         id_user: finalUserId,
@@ -817,7 +895,7 @@ const cleanupDocumentType = () => {
     }
   });
 };
-cleanupDocumentType();
+// cleanupDocumentType();
 
 // ==================== AGENDA/MEETINGS ENDPOINTS ====================
 
@@ -863,7 +941,7 @@ const checkMeetingsTable = () => {
     }
   });
 };
-checkMeetingsTable();
+// checkMeetingsTable();
 
 // Auto-migración: agregar diary_visibility a la tabla diary si no existe
 const checkDiaryVisibilityColumn = () => {
@@ -884,7 +962,7 @@ const checkDiaryVisibilityColumn = () => {
     }
   });
 };
-checkDiaryVisibilityColumn();
+// checkDiaryVisibilityColumn();
 
 // Auto-migración: agregar id_user a la tabla objetivos si no existe
 const checkObjetivosTable = () => {
@@ -914,7 +992,7 @@ const checkObjetivosTable = () => {
     }
   });
 };
-checkObjetivosTable();
+// checkObjetivosTable();
 
 // Obtener lista de psicólogos
 app.get("/api/psychologists", (req, res) => {
@@ -978,6 +1056,15 @@ app.post("/api/meetings", (req, res) => {
             sqlMessage: err.sqlMessage,
           });
         }
+        
+        // Crear notificacion de cita agendada
+        db.query("INSERT INTO notifications (id_user, type, message, link) VALUES (?, ?, ?, ?)", [
+          userId, 
+          "cita", 
+          `Nueva cita agendada el ${day} a las ${hour}`, 
+          "/agenda"
+        ]);
+
         res
           .status(200)
           .json({ message: "Cita agendada exitosamente", id: result.insertId });
@@ -1140,7 +1227,27 @@ const checkPsychobotSessionsTable = () => {
     else console.log("✅ Tabla psychobot_sessions lista.");
   });
 };
-checkPsychobotSessionsTable();
+// checkPsychobotSessionsTable();
+
+// Auto-crear tabla de notificaciones
+const checkNotificationsTable = () => {
+  const createSql = `
+    CREATE TABLE IF NOT EXISTS notifications (
+      id_notification INT AUTO_INCREMENT PRIMARY KEY,
+      id_user INT NOT NULL,
+      type VARCHAR(50) DEFAULT 'info',
+      message TEXT NOT NULL,
+      link VARCHAR(255) DEFAULT NULL,
+      is_read BOOLEAN DEFAULT FALSE,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (id_user) REFERENCES users(id_user) ON DELETE CASCADE
+    )
+  `;
+  db.query(createSql, (err) => {
+    if (err) console.error("❌ Error creando tabla notifications:", err.message);
+    else console.log("✅ Tabla notifications lista.");
+  });
+};
 
 // Auto-crear tabla de historial del bot (Actualizada con id_session)
 const checkPsychobotTable = () => {
@@ -1183,7 +1290,7 @@ const checkPsychobotTable = () => {
     }
   });
 };
-checkPsychobotTable();
+// checkPsychobotTable();
 
 // Auto-crear tabla de memoria a largo plazo
 const checkPsychobotMemoryTable = () => {
@@ -1203,7 +1310,7 @@ const checkPsychobotMemoryTable = () => {
     else console.log("✅ Tabla psychobot_memory lista.");
   });
 };
-checkPsychobotMemoryTable();
+// checkPsychobotMemoryTable();
 
 // Auto-crear tabla de alertas para psicólogos
 const checkPsychologistAlertsTable = () => {
@@ -1223,7 +1330,7 @@ const checkPsychologistAlertsTable = () => {
     else console.log("✅ Tabla psychologist_alerts lista.");
   });
 };
-checkPsychologistAlertsTable();
+// checkPsychologistAlertsTable();
 
 // 1. Obtener lista de sesiones para un usuario
 app.get("/api/psychobot/sessions/:userId", (req, res) => {
@@ -1282,7 +1389,7 @@ app.get("/api/psychobot/history/:sessionId", (req, res) => {
 
 // 5. Enviar mensaje e interactuar con IA
 app.post("/api/psychobot/chat", async (req, res) => {
-  const { userId, message, id_session } = req.body;
+  const { userId, message, id_session, personality = "empatetico" } = req.body;
   if (!userId || !message) {
     return res.status(400).json({ message: "userId y message son requeridos" });
   }
@@ -1366,17 +1473,32 @@ app.post("/api/psychobot/chat", async (req, res) => {
             "\n"
           : "";
 
-      let contextStr = `Eres Psychobot, amigo empático y psicólogo virtual de Psychoway.
-Nombre del usuario: ${userName}. Habla en español neutro. Usa emojis moderadamente 😊.
-Integra lo que sabes de forma natural. Si el usuario ha estado mal, apóyalo con empatía.
-${memoryStr}${diaryStr}
-IMPORTANTE SOBRE PRIVACIDAD: NO guardes información automáticamente en el diario ni aprendas datos nuevos sin permiso. Si detectas una emoción importante o un dato personal relevante, DEBES preguntarle primero al usuario si te da permiso para guardarlo.
-Ejemplo: "Noto que hoy te sientes triste. ¿Te gustaría que registre esto en tu diario para que podamos hacerle seguimiento?"
-SOLO cuando el usuario te dé su permiso explícito (ej. "sí", "claro", "guárdalo"), puedes usar las siguientes etiquetas en tu respuesta para guardarlo:
-[DIARY: {"description": "<descripción>", "emotion_name": "<Muy Feliz|Feliz|Neutral|Triste|Muy Triste>"}]
-[LEARN: "<dato nuevo sobre el usuario>"]
+      let personalityPrompt = "Eres un amigo empático, escuchas activamente y das respuestas suaves y comprensivas.";
+      if (personality === "entrenador") {
+        personalityPrompt = "Eres un Coach o Entrenador mental. Eres directo, muy motivador, y te enfocas en dar pasos de acción concretos y empujar al usuario a mejorar.";
+      } else if (personality === "filosofico") {
+        personalityPrompt = "Eres un guía filosófico. Tus respuestas son profundas, reflexivas, usan metáforas sabias y ayudan al usuario a ver la perspectiva general de la vida.";
+      }
 
-EMERGENCIA: Las alertas de riesgo crítico SÍ son automáticas y no requieren permiso. Usa: [ALERT: {"motivo": "..."}]
+      let contextStr = `Eres Psychobot, el asistente virtual de Psychoway.
+Nombre del usuario: ${userName}. Habla en español neutro. Usa emojis moderadamente 😊.
+TU PERSONALIDAD ACTUAL: ${personalityPrompt}
+
+Integra lo que sabes del usuario de forma natural:
+${memoryStr}${diaryStr}
+IMPORTANTE: NUNCA registres emociones ni entradas de diario automáticamente. El usuario tiene un botón dedicado para eso.
+Si el usuario comparte cómo se siente, simplemente escúchalo y apóyalo con empatía. NO uses etiquetas [DIARY:...].
+
+APRENDIZAJE: Si el usuario te dice un dato personal relevante (nombre de mascota, hobby, etc.) y te da permiso, usa: [LEARN: "<dato>"]
+
+EMERGENCIA: Solo en casos de riesgo crítico usa: [ALERT: {"motivo": "..."}]
+
+MAPA CORPORAL: Si el usuario envía un mensaje reportando una emoción corporal (ej: "Siento Confusión en la zona: cabeza, con una intensidad de 5/10."), responde con profunda empatía anatómica, validando por qué esa emoción se siente en esa parte del cuerpo, y pregúntale gentilmente sobre los matices de esa sensación para ayudarle a explorarla, tal como lo haría un terapeuta compasivo.
+
+WIDGETS: Puedes mostrar herramientas interactivas al usuario con estas etiquetas al final de tu mensaje:
+- Si tiene ansiedad o necesita calmarse: [WIDGET:GROUNDING]
+- Si quieres medir su nivel de estrés/ánimo numéricamente: [WIDGET:THERMOMETER]
+- Si pide un reto, motivación rápida o quiere activarse: [WIDGET:CHALLENGE]
 
 Chat reciente:
 `;
@@ -1430,9 +1552,18 @@ Chat reciente:
         const is503 =
           aiError.status === 503 ||
           (aiError.message && aiError.message.includes("503"));
-        const aiErrMsg = is503
-          ? "El servicio de IA está recibiendo mucho tráfico ahora mismo. ¡Inténtalo de nuevo en un momento! 😊"
-          : "Estoy teniendo dificultades técnicas 😔. Por favor, intenta de nuevo en unos minutos.";
+        const is429 =
+          aiError.status === 429 ||
+          (aiError.message && aiError.message.includes("429")) ||
+          (aiError.message && aiError.message.includes("RESOURCE_EXHAUSTED"));
+        
+        let aiErrMsg = "Estoy teniendo dificultades técnicas 😔. Por favor, intenta de nuevo en unos minutos.";
+        if (is503) {
+          aiErrMsg = "El servicio de IA está recibiendo mucho tráfico ahora mismo. ¡Inténtalo de nuevo en un momento! 😊";
+        } else if (is429) {
+          aiErrMsg = "He alcanzado mi límite de consultas gratuitas por hoy. Por favor, intenta de nuevo en unos minutos. ¡Gracias por tu paciencia! [SNOOPY:SAD]";
+        }
+        
         return res
           .status(200)
           .json({ type: "bot", text: aiErrMsg, id_session: activeSessionId });
@@ -1588,6 +1719,106 @@ app.put("/api/psychologist/alerts/:id/read", (req, res) => {
       res.status(200).json({ message: "Alert marked as read" });
     },
   );
+});
+
+// ==================== NOTIFICATIONS ENDPOINTS ====================
+
+app.get("/api/notifications/:userId", (req, res) => {
+  db.query("SELECT * FROM notifications WHERE id_user = ? ORDER BY created_at DESC", [req.params.userId], (err, results) => {
+    if (err) return res.status(500).json({ message: "Error fetching notifications" });
+    res.status(200).json(results);
+  });
+});
+
+app.put("/api/notifications/:id/read", (req, res) => {
+  db.query("UPDATE notifications SET is_read = TRUE WHERE id_notification = ?", [req.params.id], (err) => {
+    if (err) return res.status(500).json({ message: "Error updating notification" });
+    res.status(200).json({ message: "Notification marked as read" });
+  });
+});
+
+app.post("/api/notifications/check-in", (req, res) => {
+  const { userId } = req.body;
+  if (!userId) return res.status(400).json({ message: "userId required" });
+
+  db.query("SELECT created_at FROM psychobot_sessions WHERE id_user = ? ORDER BY created_at DESC LIMIT 1", [userId], (err, results) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (results.length > 0) {
+      const lastSession = new Date(results[0].created_at);
+      const now = new Date();
+      const diffDays = (now - lastSession) / (1000 * 60 * 60 * 24);
+      if (diffDays > 3) {
+        db.query("SELECT id_notification FROM notifications WHERE id_user = ? AND type = 'check-in' AND is_read = FALSE", [userId], (err2, res2) => {
+          if (!err2 && res2.length === 0) {
+            db.query("INSERT INTO notifications (id_user, type, message, link) VALUES (?, ?, ?, ?)",
+              [userId, "check-in", "Psychobot: ¿Cómo vas? Hace días que no hablamos. Ven a contarme cómo te sientes.", "/psychobot"]
+            );
+          }
+        });
+      }
+    }
+    res.status(200).json({ message: "Check-in evaluado" });
+  });
+});
+
+// ==================== WEEKLY SUMMARY ENDPOINT ====================
+
+app.post("/api/psychobot/weekly-summary", async (req, res) => {
+  const { userId } = req.body;
+  let activeSessionId = null;
+  try {
+    const [userRows, diaryRows, sessionRows] = await Promise.all([
+      new Promise(r => db.query("SELECT names FROM users WHERE id_user = ?", [userId], (err, dbRes) => r(err ? [] : dbRes))),
+      new Promise(r => db.query("SELECT de.description, e.emot_name, de.entry_date FROM diary_entries de JOIN diary d ON de.id_diary = d.id_diary JOIN emotions e ON de.id_emotions = e.id_emotions WHERE d.id_user = ? AND de.entry_date >= DATE_SUB(NOW(), INTERVAL 7 DAY)", [userId], (err, dbRes) => r(err ? [] : dbRes))),
+      new Promise(r => db.query("SELECT id_session FROM psychobot_sessions WHERE id_user = ? ORDER BY created_at DESC LIMIT 1", [userId], (err, dbRes) => r(err ? [] : dbRes)))
+    ]);
+
+    const userName = userRows.length > 0 ? userRows[0].names : "Usuario";
+    activeSessionId = sessionRows.length > 0 ? sessionRows[0].id_session : null;
+
+    if (!activeSessionId) {
+       const insertSession = await new Promise(r => db.query("INSERT INTO psychobot_sessions (id_user, title) VALUES (?, ?)", [userId, "Resumen Semanal"], (err, dbRes) => r(dbRes ? dbRes.insertId : null)));
+       activeSessionId = insertSession;
+    }
+
+    if (!diaryRows || diaryRows.length === 0) {
+      const msg = "Aún no tienes suficientes registros en tu diario esta semana para hacer un resumen. ¡Anímate a escribir!";
+      db.query("INSERT INTO psychobot_chats (id_user, id_session, role, message) VALUES (?, ?, 'bot', ?)", [userId, activeSessionId, msg]);
+      return res.status(200).json({ type: "bot", text: msg, id_session: activeSessionId });
+    }
+
+    const diaryStr = diaryRows.map(d => `- ${new Date(d.entry_date).toLocaleDateString()}: ${d.emot_name} - ${d.description || ''}`).join("\\n");
+    const prompt = `Eres Psychobot. El usuario ${userName} ha solicitado su resumen semanal. 
+Aquí están sus entradas de los últimos 7 días:
+${diaryStr}
+Tu tarea: Redacta un resumen cálido, empático y motivador. Identifica la emoción predominante, resalta si ha mencionado alguna zona corporal en sus descripciones (ej. dolor de pecho, dolor de cabeza) y felicítalo por llevar su registro de bienestar. No uses etiquetas de widgets ni corchetes, EXCEPTO lo siguiente: Si el bienestar general de la persona es positivo o ha mejorado, añade EXACTAMENTE al final de tu respuesta el texto "[SNOOPY:HAPPY]". Si la persona la ha estado pasando mal o se siente triste/negativo en general, añade EXACTAMENTE al final de tu respuesta el texto "[SNOOPY:SAD]". Responde directo, como un amigo.`;
+
+    // Si la IA no está configurada, usar texto fijo
+    if (!ai || GEMINI_API_KEY === "API_KEY_AQUI") {
+       const botReply = "Tienes entradas registradas esta semana, pero la IA no está conectada para generar el resumen.";
+       db.query("INSERT INTO psychobot_chats (id_user, id_session, role, message) VALUES (?, ?, 'bot', ?)", [userId, activeSessionId, botReply]);
+       return res.status(200).json({ type: "bot", text: botReply, id_session: activeSessionId });
+    }
+
+    const response = await ai.models.generateContent({ model: "gemini-flash-latest", contents: prompt });
+    const botReply = response.text || "No pude generar el resumen en este momento.";
+
+    db.query("INSERT INTO psychobot_chats (id_user, id_session, role, message) VALUES (?, ?, 'bot', ?)", [userId, activeSessionId, botReply]);
+    res.status(200).json({ type: "bot", text: botReply, id_session: activeSessionId });
+
+  } catch (e) {
+    console.error("❌ Error en Weekly Summary:", e);
+    const is429 = e.status === 429 || (e.message && (e.message.includes("429") || e.message.includes("RESOURCE_EXHAUSTED")));
+    const botReply = is429 
+      ? "Me encantaría darte tu resumen semanal, pero he excedido mi cuota gratuita de la API en este momento. Por favor, intenta de nuevo en unos minutos. [SNOOPY:SAD]"
+      : "Hubo un error al generar tu resumen. Por favor, intenta de nuevo más tarde.";
+    
+    // Intentar guardar el mensaje de error en el chat si tenemos sessionId
+    if (activeSessionId) {
+       db.query("INSERT INTO psychobot_chats (id_user, id_session, role, message) VALUES (?, ?, 'bot', ?)", [userId, activeSessionId, botReply]);
+    }
+    res.status(200).json({ type: "bot", text: botReply, id_session: activeSessionId });
+  }
 });
 
 const PORT = 5000;

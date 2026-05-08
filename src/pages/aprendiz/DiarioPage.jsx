@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 
 function DiarioPage() {
-  const { user } = useAuth();
+  const { user, authFetch } = useAuth();
   const [selectedEmotion, setSelectedEmotion] = useState(null);
   const [diarioTexto, setDiarioTexto] = useState("");
   const [showUpdateForm, setShowUpdateForm] = useState(false);
@@ -63,7 +63,7 @@ function DiarioPage() {
     const userId = user?.id || user?.id_user;
     if (!userId) return;
     try {
-      const response = await fetch(
+      const response = await authFetch(
         `http://localhost:5000/api/objectives/${userId}`,
       );
       if (response.ok) {
@@ -135,7 +135,7 @@ function DiarioPage() {
 
     setLoading(true);
     try {
-      const response = await fetch("http://localhost:5000/api/diary/entry", {
+      const response = await authFetch("http://localhost:5000/api/diary/entry", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -182,7 +182,7 @@ function DiarioPage() {
 
     setLoading(true);
     try {
-      const response = await fetch("http://localhost:5000/api/objectives", {
+      const response = await authFetch("http://localhost:5000/api/objectives", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -222,7 +222,7 @@ function DiarioPage() {
 
     setLoading(true);
     try {
-      const response = await fetch(
+      const response = await authFetch(
         `http://localhost:5000/api/objectives/${objetivoActualizar.seleccionado}`,
         {
           method: "PUT",
@@ -272,7 +272,7 @@ function DiarioPage() {
 
     setLoading(true);
     try {
-      const response = await fetch(
+      const response = await authFetch(
         `http://localhost:5000/api/objectives/${objetivoActualizar.seleccionado}`,
         {
           method: "DELETE",

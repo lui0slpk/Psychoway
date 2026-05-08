@@ -77,8 +77,7 @@ function Sidebar({ currentPage }) {
                 <NavLink
                   to={item.path}
                   className={({ isActive }) =>
-                    `nav-link active fw-semibold border border-0 rounded-3 me-4 ${
-                      isActive || currentPage === item.id ? "bg-dark" : ""
+                    `nav-link active fw-semibold border border-0 rounded-3 me-4 ${isActive || currentPage === item.id ? "bg-dark" : ""
                     }`
                   }
                   style={({ isActive }) =>

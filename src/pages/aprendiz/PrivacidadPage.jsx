@@ -7,7 +7,7 @@ import { User, Shield, Eye, Save } from "lucide-react";
 import Swal from "sweetalert2";
 
 function PrivacidadPage() {
-  const { user } = useAuth();
+  const { user, authFetch } = useAuth();
   const [visibilidad, setVisibilidad] = useState("yo-psicologo");
   const [loading, setLoading] = useState(true);
 
@@ -18,7 +18,7 @@ function PrivacidadPage() {
     if (!user) return;
     const fetchPrivacy = async () => {
       try {
-        const res = await fetch(`http://localhost:5000/api/users/privacy/${user.id}`);
+        const res = await authFetch(`http://localhost:5000/api/users/privacy/${user.id}`);
         if (res.ok) { const data = await res.json(); setVisibilidad(data.diary_visibility); }
       } catch (error) { console.error("Error al cargar privacidad:", error); }
       finally { setLoading(false); }
@@ -29,7 +29,7 @@ function PrivacidadPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch(`http://localhost:5000/api/users/privacy/${user.id}`, {
+      const res = await authFetch(`http://localhost:5000/api/users/privacy/${user.id}`, {
         method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ visibilidad }),
       });
       if (res.ok) {
