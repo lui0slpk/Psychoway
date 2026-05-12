@@ -1,28 +1,34 @@
 import nodemailer from "nodemailer";
+import env from "../config/environment.js";
 
-// Transporter configurado con Gmail SMTP
-export const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 465,
-  secure: true,
+/**
+ * Transporter configurado con Gmail SMTP.
+ */
+const transporter = nodemailer.createTransport({
+  host: env.EMAIL_HOST,
+  port: env.EMAIL_PORT,
+  secure: env.EMAIL_SECURE,
   auth: {
-    user: "psychowaysena@gmail.com",
-    pass: "fqoc twlg ttgk zohl",
+    user: env.EMAIL_USER,
+    pass: env.EMAIL_PASS,
   },
 });
 
+// Verificar conexión al iniciar
 transporter.verify().then(() => {
   console.log("✅ Listo para enviar emails");
+}).catch((err) => {
+  console.warn("⚠️ No se pudo verificar el transporter de email:", err.message);
 });
 
 /**
  * Envía un correo de recuperación de contraseña con un enlace para restablecer.
  * @param {string} email - Correo del usuario
- * @param {string} resetLink - URL completa con el token (ej: http://localhost:5173/reset-password?token=abc123)
+ * @param {string} resetLink - URL completa con el token
  */
-export const sendPasswordResetEmail = async (email, resetLink) => {
+export async function sendPasswordResetEmail(email, resetLink) {
   const mailOptions = {
-    from: '"Psychoway" <psychowaysena@gmail.com>',
+    from: env.EMAIL_FROM,
     to: email,
     subject: "Recuperación de contraseña - Psychoway",
     html: `
@@ -99,4 +105,4 @@ export const sendPasswordResetEmail = async (email, resetLink) => {
   const info = await transporter.sendMail(mailOptions);
   console.log("📧 Correo de recuperación enviado:", info.messageId);
   return info;
-};
+}
