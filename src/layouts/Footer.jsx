@@ -10,7 +10,7 @@ function Footer({ showLinks = true }) {
     <footer className="py-4 bg-light mt-auto">
       <div className="container-fluid px-4">
         <div className="d-flex align-items-center justify-content-between small">
-          <div className="text-muted">Copyright &copy; Psychoway 2025</div>
+          <div className="text-muted">Copyright &copy; Psychoway 2026</div>
           {showLinks && (
             <div>
               <a href="#!">Política de Privacidad</a>
