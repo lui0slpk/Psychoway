@@ -44,3 +44,40 @@ export async function getPsychologists(req, res, next) {
     next(error);
   }
 }
+
+export async function updateProfile(req, res, next) {
+  try {
+    const result = await usersService.updateProfile(req.params.id, req.body);
+    res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function updateProfilePhoto(req, res, next) {
+  try {
+    const { profilePhoto } = req.body;
+    const result = await usersService.updateProfilePhoto(req.params.id, profilePhoto);
+    res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getProfilePhoto(req, res, next) {
+  try {
+    const result = await usersService.getProfilePhoto(req.params.id);
+    res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getProfile(req, res, next) {
+  try {
+    const result = await usersService.getFullProfile(req.params.id);
+    res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+}

@@ -97,6 +97,7 @@ export async function login(document, password) {
       last_names: user.last_names,
       id_rol: user.id_rol,
       rol: finalRole,
+      profile_photo: user.profile_photo || null,
     },
   };
 }

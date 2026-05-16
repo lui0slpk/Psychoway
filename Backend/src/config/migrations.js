@@ -144,6 +144,18 @@ export async function runMigrations() {
     `);
     console.log("✅ Tabla notifications lista.");
 
+    // 11. Agregar profile_photo a users si no existe
+    const profilePhotoCol = await execute(
+      "SHOW COLUMNS FROM users LIKE 'profile_photo'",
+    ).catch(() => []);
+    if (Array.isArray(profilePhotoCol) && profilePhotoCol.length === 0) {
+      console.log("⚠️ Agregando profile_photo a users...");
+      await execute(
+        "ALTER TABLE users ADD COLUMN profile_photo LONGTEXT DEFAULT NULL",
+      ).catch((err) => console.error("❌", err.message));
+      console.log("✅ profile_photo agregada a users.");
+    }
+
     console.log("✅ Migraciones completadas.");
   } catch (error) {
     console.error("❌ Error en migraciones:", error.message);
