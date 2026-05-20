@@ -29,3 +29,126 @@ code {
   border-color: #0a6648;
   color: white;
 }
+
+/* Custom SweetAlert2 Styles for Psychoway */
+.psychoway-swal-popup {
+  border-radius: 1.25rem !important;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+  padding: 2.5rem 2rem !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1) !important;
+}
+
+.psychoway-swal-title {
+  font-weight: 700 !important;
+  color: #1a1a1a !important;
+  font-size: 1.5rem !important;
+  margin-top: 1rem !important;
+}
+
+.psychoway-swal-html {
+  color: #4a5568 !important;
+  font-size: 1rem !important;
+  margin-top: 0.5rem !important;
+  line-height: 1.5 !important;
+}
+
+/* Custom buttons */
+.psychoway-swal-confirm-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-weight: 600 !important;
+  padding: 0.65rem 2rem !important;
+  border-radius: 50px !important;
+  font-size: 0.95rem !important;
+  transition: all 0.2s ease-in-out !important;
+  border: none !important;
+  cursor: pointer !important;
+  outline: none !important;
+  margin: 0.5rem !important;
+}
+
+.psychoway-swal-cancel-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-weight: 600 !important;
+  padding: 0.65rem 2rem !important;
+  border-radius: 50px !important;
+  font-size: 0.95rem !important;
+  transition: all 0.2s ease-in-out !important;
+  border: 1px solid #cbd5e1 !important;
+  background-color: #ffffff !important;
+  color: #475569 !important;
+  cursor: pointer !important;
+  outline: none !important;
+  margin: 0.5rem !important;
+}
+
+.psychoway-swal-cancel-btn:hover {
+  background-color: #f1f5f9 !important;
+  color: #334155 !important;
+  border-color: #94a3b8 !important;
+}
+
+/* Success icons / buttons */
+.swal2-icon.swal2-success {
+  border-color: #0d825c !important;
+}
+
+.swal2-icon.swal2-success .swal2-success-ring {
+  border: .25em solid rgba(13, 130, 92, .2) !important;
+}
+
+.swal2-icon.swal2-success [class^=swal2-success-line] {
+  background-color: #0d825c !important;
+}
+
+/* Success / general confirm buttons */
+.swal2-icon-success ~ .swal2-actions .psychoway-swal-confirm-btn,
+.swal2-icon-info ~ .swal2-actions .psychoway-swal-confirm-btn,
+.swal2-icon-question ~ .swal2-actions .psychoway-swal-confirm-btn,
+.psychoway-swal-popup:not([class*='swal2-icon-']) .psychoway-swal-confirm-btn {
+  background: linear-gradient(135deg, #0d825c 0%, #005222 100%) !important;
+  color: white !important;
+  box-shadow: 0 4px 12px rgba(13, 130, 92, 0.2) !important;
+}
+
+.swal2-icon-success ~ .swal2-actions .psychoway-swal-confirm-btn:hover,
+.swal2-icon-info ~ .swal2-actions .psychoway-swal-confirm-btn:hover,
+.swal2-icon-question ~ .swal2-actions .psychoway-swal-confirm-btn:hover,
+.psychoway-swal-popup:not([class*='swal2-icon-']) .psychoway-swal-confirm-btn:hover {
+  background: linear-gradient(135deg, #0a6648 0%, #001A0B 100%) !important;
+  box-shadow: 0 4px 15px rgba(13, 130, 92, 0.35) !important;
+}
+
+/* Delete / Warning / Error confirms */
+.swal2-icon-warning ~ .swal2-actions .psychoway-swal-confirm-btn,
+.swal2-icon-error ~ .swal2-actions .psychoway-swal-confirm-btn {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
+  color: white !important;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2) !important;
+}
+
+.swal2-icon-warning ~ .swal2-actions .psychoway-swal-confirm-btn:hover,
+.swal2-icon-error ~ .swal2-actions .psychoway-swal-confirm-btn:hover {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%) !important;
+  box-shadow: 0 4px 15px rgba(239, 68, 68, 0.35) !important;
+}
+
+/* Inputs in alerts */
+.psychoway-swal-input {
+  border: 2px solid #e2e8f0 !important;
+  border-radius: 10px !important;
+  padding: 0.65rem 1rem !important;
+  font-size: 0.95rem !important;
+  transition: all 0.2s ease !important;
+  box-shadow: none !important;
+}
+
+.psychoway-swal-input:focus {
+  border-color: #0d825c !important;
+  outline: none !important;
+  box-shadow: 0 0 0 3px rgba(13, 130, 92, 0.15) !important;
+}
+

@@ -200,17 +200,28 @@ function Navbar({ pageTitle, pageSubtitle }) {
         )}
         <li className="nav-item dropdown">
           <a
-            className="nav-link dropdown-toggle text-center"
+            className="nav-link dropdown-toggle text-center d-flex align-items-center gap-2"
             id="navbarDropdown"
             href="#!"
             role="button"
             data-bs-toggle="dropdown"
             aria-expanded="false"
           >
-            <i
-              className="fa-regular fa-circle-user fa-fw fa-2x"
-              style={{ color: iconColor }}
-            ></i>{" "}
+            {user?.profile_photo ? (
+              <img
+                src={user.profile_photo}
+                alt="Perfil"
+                style={{
+                  width: 32, height: 32, borderRadius: "50%",
+                  objectFit: "cover", border: "2px solid #e9ecef",
+                }}
+              />
+            ) : (
+              <i
+                className="fa-regular fa-circle-user fa-fw fa-2x"
+                style={{ color: iconColor }}
+              ></i>
+            )}{" "}
             {user?.names || "Usuario"}
           </a>
           <ul

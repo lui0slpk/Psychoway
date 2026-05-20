@@ -76,6 +76,13 @@ export function AuthProvider({ children }) {
     localStorage.removeItem("psychoway_token");
   };
 
+  // Función para actualizar datos del usuario (sin cerrar sesión)
+  const updateUser = (updatedData) => {
+    const newUser = { ...user, ...updatedData };
+    setUser(newUser);
+    localStorage.setItem("psychoway_user", JSON.stringify(newUser));
+  };
+
   // Verificar si el usuario tiene un rol específico
   const hasRole = (roles) => {
     if (!user) return false;
@@ -134,6 +141,7 @@ export function AuthProvider({ children }) {
     loading,
     login,
     logout,
+    updateUser,
     hasRole,
     authFetch,
     getToken,

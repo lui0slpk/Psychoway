@@ -2,12 +2,13 @@ import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import MainLayout from "../../layouts/MainLayout";
 import { motion } from "framer-motion";
-import { UserPlus, Edit3, Eye, EyeOff, CheckCircle } from "lucide-react";
+import { UserPlus, Edit3, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
+import { showSuccess, showError, showWarning } from "../../utils/alerts";
 
 function GestionPage() {
   const { authFetch } = useAuth();
-  const [showSuccess, setShowSuccess] = useState(false);
+
   const [showPassword, setShowPassword] = useState(false);
   const [touched, setTouched] = useState({});
   const [formData, setFormData] = useState({ rol: "", documento: "", tipoDocumento: "", nombres: "", apellidos: "", fechaNacimiento: "", correo: "", password: "" });
@@ -33,15 +34,24 @@ function GestionPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault(); setTouched({ password: true, documento: true });
-    if (!passwordValida || !documentoValido) { alert("Por favor corrige los errores en el formulario antes de continuar."); return; }
+    if (!passwordValida || !documentoValido) {
+      showWarning(
+        "Formulario incompleto",
+        "Por favor corrige los errores en el formulario antes de continuar."
+      );
+      return;
+    }
     try {
       const response = await authFetch("http://localhost:5000/api/users/create", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(formData) });
       const data = await response.json();
       if (response.ok) {
-        setShowSuccess(true); setFormData({ rol: "", documento: "", tipoDocumento: "", nombres: "", apellidos: "", fechaNacimiento: "", correo: "", password: "" }); setTouched({});
-        setTimeout(() => setShowSuccess(false), 2000);
-      } else alert(`Error: ${data.message || "Error al crear usuario"}`);
-    } catch (error) { console.error("Error:", error); alert("Error al conectar con el servidor."); }
+        showSuccess("¡Registro Exitoso!", "El usuario ha sido creado correctamente.");
+        setFormData({ rol: "", documento: "", tipoDocumento: "", nombres: "", apellidos: "", fechaNacimiento: "", correo: "", password: "" }); setTouched({});
+      } else showError("Error", data.message || "Error al crear usuario");
+    } catch (error) {
+      console.error("Error:", error);
+      showError("Error de conexión", "Error al conectar con el servidor.");
+    }
   };
 
   const cV = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.5, staggerChildren: 0.1 } } };
@@ -49,16 +59,7 @@ function GestionPage() {
 
   return (
     <MainLayout pageTitle="Gestión de Usuarios" pageSubtitle="Crea, elimina y modifica datos de usuario" currentPage="gestion">
-      {/* Modal de éxito */}
-      {showSuccess && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center" style={{ backgroundColor: "rgba(0,0,0,0.4)", zIndex: 9999 }}>
-          <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }} className="card border-0 rounded-4 p-5 text-center shadow-lg" style={{ maxWidth: "400px" }}>
-            <CheckCircle size={64} className="text-success mx-auto mb-3" />
-            <h3 className="fw-bold text-success mb-2">¡Registro Exitoso!</h3>
-            <p className="text-muted mb-0">El usuario ha sido creado correctamente.</p>
-          </motion.div>
-        </motion.div>
-      )}
+
 
       <motion.div className="container-fluid px-4 py-4" initial="hidden" animate="visible" variants={cV}>
         <div className="row justify-content-center g-4">

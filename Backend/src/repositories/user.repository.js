@@ -82,12 +82,12 @@ export async function findByDocumentWithRole(document) {
  * Actualiza un usuario (con contraseña).
  */
 export async function updateWithPassword(id, userData) {
-  const { document, doc_type, names, last_names, birth_date, email, password, id_rol } = userData;
+  const { document, doc_type, names, last_names, birth_date, email, password, id_rol, profile_photo } = userData;
   const result = await execute(
     `UPDATE users SET document = ?, doc_type = ?, names = ?, last_names = ?, 
-     birth_date = ?, email = ?, password = ?, id_rol = ?, last_update = NOW() 
+     birth_date = ?, email = ?, password = ?, id_rol = ?, profile_photo = ?, last_update = NOW() 
      WHERE id_user = ?`,
-    [document, doc_type || null, names, last_names, birth_date, email, password, id_rol, id],
+    [document, doc_type || null, names, last_names, birth_date, email, password, id_rol, profile_photo !== undefined ? profile_photo : null, id],
   );
   return result.affectedRows > 0;
 }
@@ -96,12 +96,12 @@ export async function updateWithPassword(id, userData) {
  * Actualiza un usuario (sin contraseña).
  */
 export async function updateWithoutPassword(id, userData) {
-  const { document, doc_type, names, last_names, birth_date, email, id_rol } = userData;
+  const { document, doc_type, names, last_names, birth_date, email, id_rol, profile_photo } = userData;
   const result = await execute(
     `UPDATE users SET document = ?, doc_type = ?, names = ?, last_names = ?, 
-     birth_date = ?, email = ?, id_rol = ?, last_update = NOW() 
+     birth_date = ?, email = ?, id_rol = ?, profile_photo = ?, last_update = NOW() 
      WHERE id_user = ?`,
-    [document, doc_type || null, names, last_names, birth_date, email, id_rol, id],
+    [document, doc_type || null, names, last_names, birth_date, email, id_rol, profile_photo !== undefined ? profile_photo : null, id],
   );
   return result.affectedRows > 0;
 }
@@ -129,4 +129,23 @@ export async function getNameById(userId) {
     userId,
   ]);
   return rows.length > 0 ? rows[0].names : "Usuario";
+}
+
+/**
+ * Actualiza solo la foto de perfil de un usuario.
+ */
+export async function updateProfilePhoto(id, profilePhoto) {
+  const result = await execute(
+    "UPDATE users SET profile_photo = ?, last_update = NOW() WHERE id_user = ?",
+    [profilePhoto, id],
+  );
+  return result.affectedRows > 0;
+}
+
+/**
+ * Obtiene la foto de perfil de un usuario.
+ */
+export async function getProfilePhoto(id) {
+  const rows = await query("SELECT profile_photo FROM users WHERE id_user = ?", [id]);
+  return rows.length > 0 ? rows[0].profile_photo : null;
 }
