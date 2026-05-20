@@ -4,6 +4,7 @@ import meetImg from "../../assets/img/meet.png";
 import { useAuth } from "../../context/AuthContext";
 import { motion } from "framer-motion";
 import { Calendar, Clock, Users, FileText, CheckCircle, Video, Search, RefreshCw } from "lucide-react";
+import { showSuccess, showError, showWarning } from "../../utils/alerts";
 
 const WORKING_HOURS = ["08:00","09:00","10:00","11:00","13:00","14:00","15:00","16:00"];
 
@@ -46,15 +47,15 @@ function AgendaPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!searchPsychologist) { alert("Error: No se ha seleccionado psicólogo."); return; }
-    if (!formData.dia || !formData.hora) { alert("Por favor asigna un horario disponible desde el panel derecho."); return; }
+    if (!searchPsychologist) { showWarning("Aviso", "No se ha seleccionado psicólogo."); return; }
+    if (!formData.dia || !formData.hora) { showWarning("Aviso", "Por favor asigna un horario disponible desde el panel derecho."); return; }
     const payload = { userId: user.id || user.id_user, professionalId: searchPsychologist, day: formData.dia, hour: formData.hora, description: formData.descripcion };
     try {
       const r = await authFetch("http://localhost:5000/api/meetings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       const data = await r.json();
-      if (r.ok) { alert("¡Cita agendada con éxito!"); fetchHistory(); fetchOccupiedSlots(searchPsychologist); setFormData({ dia: "", hora: "", descripcion: "" }); }
-      else alert("Error: " + data.message);
-    } catch (error) { console.error("Error:", error); alert("Error al conectar con el servidor."); }
+      if (r.ok) { showSuccess("¡Éxito!", "¡Cita agendada con éxito!"); fetchHistory(); fetchOccupiedSlots(searchPsychologist); setFormData({ dia: "", hora: "", descripcion: "" }); }
+      else showError("Error", data.message || "Error al agendar cita.");
+    } catch (error) { console.error("Error:", error); showError("Error de conexión", "Error al conectar con el servidor."); }
   };
 
   const selPsych = psychologists.find(p => String(p.id_user) === String(searchPsychologist));

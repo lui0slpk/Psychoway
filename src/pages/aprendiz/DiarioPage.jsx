@@ -12,8 +12,8 @@ import {
   Edit3,
   X,
   CheckCircle,
-  AlertCircle,
 } from "lucide-react";
+import { showSuccess, showError, showWarning, showConfirm } from "../../utils/alerts";
 
 function DiarioPage() {
   const { user, authFetch } = useAuth();
@@ -23,7 +23,6 @@ function DiarioPage() {
   const [objetivos, setObjetivos] = useState([]);
 
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState({ text: "", type: "" });
 
   const [objetivo, setObjetivo] = useState({
     nombre: "",
@@ -83,10 +82,7 @@ function DiarioPage() {
     }
   }, [user, fetchObjetivos]);
 
-  const showMessage = (text, type = "success") => {
-    setMessage({ text, type });
-    setTimeout(() => setMessage({ text: "", type: "" }), 5000);
-  };
+
 
   const handleEmotionClick = (index) => {
     setSelectedEmotion(index);
@@ -98,7 +94,7 @@ function DiarioPage() {
     console.log("🔍 Debug - user.id_user:", user?.id_user);
 
     if (selectedEmotion === null) {
-      showMessage("Por favor selecciona una emoción", "error");
+      showWarning("Aviso", "Por favor selecciona una emoción");
       return;
     }
 
@@ -125,8 +121,9 @@ function DiarioPage() {
         "❌ Usuario no tiene ID. Objeto completo:",
         JSON.stringify(user, null, 2),
       );
-      alert(
-        "Error de autenticación: No se pudo encontrar tu ID de usuario. Revisa la consola (F12) para ver el objeto completo.",
+      showError(
+        "Error de autenticación",
+        "No se pudo encontrar tu ID de usuario. Revisa la consola (F12) para ver el objeto completo."
       );
       return;
     }
@@ -148,18 +145,18 @@ function DiarioPage() {
       const data = await response.json();
 
       if (response.ok) {
-        showMessage("¡Entrada de diario registrada correctamente!", "success");
+        showSuccess("¡Registrado!", "¡Entrada de diario registrada correctamente!");
         setSelectedEmotion(null);
         setDiarioTexto("");
       } else {
-        showMessage(
-          data.error || data.message || "Error al registrar entrada",
-          "error",
+        showError(
+          "Error",
+          data.error || data.message || "Error al registrar entrada"
         );
       }
     } catch (error) {
       console.error("Error:", error);
-      showMessage("No se pudo conectar con el servidor", "error");
+      showError("Error de conexión", "No se pudo conectar con el servidor");
     } finally {
       setLoading(false);
     }
@@ -167,15 +164,15 @@ function DiarioPage() {
 
   const handleCrearObjetivo = async () => {
     if (!objetivo.nombre.trim()) {
-      showMessage("Por favor ingresa un nombre para el objetivo", "error");
+      showWarning("Aviso", "Por favor ingresa un nombre para el objetivo");
       return;
     }
 
     const userId = user?.id || user?.id_user;
     if (!userId) {
-      showMessage(
-        "Error: Usuario no autenticado. Por favor cierra sesión y vuelve a iniciar sesión.",
-        "error",
+      showError(
+        "Error de autenticación",
+        "Usuario no autenticado. Por favor cierra sesión y vuelve a iniciar sesión."
       );
       return;
     }
@@ -196,7 +193,7 @@ function DiarioPage() {
       const data = await response.json();
 
       if (response.ok) {
-        showMessage("¡Objetivo creado correctamente!", "success");
+        showSuccess("¡Creado!", "¡Objetivo creado correctamente!");
         setObjetivo({
           nombre: "",
           descripcion: "",
@@ -204,11 +201,11 @@ function DiarioPage() {
         });
         fetchObjetivos();
       } else {
-        showMessage(data.message || "Error al crear objetivo", "error");
+        showError("Error", data.message || "Error al crear objetivo");
       }
     } catch (error) {
       console.error("Error:", error);
-      showMessage("No se pudo conectar con el servidor", "error");
+      showError("Error de conexión", "No se pudo conectar con el servidor");
     } finally {
       setLoading(false);
     }
@@ -216,7 +213,7 @@ function DiarioPage() {
 
   const handleActualizarObjetivo = async () => {
     if (!objetivoActualizar.seleccionado) {
-      showMessage("Por favor selecciona un objetivo", "error");
+      showWarning("Aviso", "Por favor selecciona un objetivo");
       return;
     }
 
@@ -238,7 +235,7 @@ function DiarioPage() {
       const data = await response.json();
 
       if (response.ok) {
-        showMessage("¡Objetivo actualizado correctamente!", "success");
+        showSuccess("¡Actualizado!", "¡Objetivo actualizado correctamente!");
         setShowUpdateForm(false);
         setObjetivoActualizar({
           seleccionado: "",
@@ -248,11 +245,11 @@ function DiarioPage() {
         });
         fetchObjetivos();
       } else {
-        showMessage(data.message || "Error al actualizar objetivo", "error");
+        showError("Error", data.message || "Error al actualizar objetivo");
       }
     } catch (error) {
       console.error("Error:", error);
-      showMessage("No se pudo conectar con el servidor", "error");
+      showError("Error de conexión", "No se pudo conectar con el servidor");
     } finally {
       setLoading(false);
     }
@@ -260,13 +257,15 @@ function DiarioPage() {
 
   const handleEliminarObjetivo = async () => {
     if (!objetivoActualizar.seleccionado) {
-      showMessage("Por favor selecciona un objetivo", "error");
+      showWarning("Aviso", "Por favor selecciona un objetivo");
       return;
     }
 
-    if (
-      !window.confirm("¿Estás seguro de que deseas eliminar este objetivo?")
-    ) {
+    const result = await showConfirm(
+      "¿Estás seguro?",
+      "¿Estás seguro de que deseas eliminar este objetivo?"
+    );
+    if (!result.isConfirmed) {
       return;
     }
 
@@ -282,7 +281,7 @@ function DiarioPage() {
       const data = await response.json();
 
       if (response.ok) {
-        showMessage("¡Objetivo eliminado correctamente!", "success");
+        showSuccess("¡Eliminado!", "¡Objetivo eliminado correctamente!");
         setShowUpdateForm(false);
         setObjetivoActualizar({
           seleccionado: "",
@@ -292,11 +291,11 @@ function DiarioPage() {
         });
         fetchObjetivos();
       } else {
-        showMessage(data.message || "Error al eliminar objetivo", "error");
+        showError("Error", data.message || "Error al eliminar objetivo");
       }
     } catch (error) {
       console.error("Error:", error);
-      showMessage("No se pudo conectar con el servidor", "error");
+      showError("Error de conexión", "No se pudo conectar con el servidor");
     } finally {
       setLoading(false);
     }
@@ -351,26 +350,6 @@ function DiarioPage() {
         variants={containerVariants}
       >
         {/* Mensaje de éxito/error */}
-        {message.text && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className={`alert d-flex align-items-center gap-2 rounded-4 border-0 shadow-sm ${message.type === "success" ? "alert-success" : "alert-danger"}`}
-            role="alert"
-          >
-            {message.type === "success" ? (
-              <CheckCircle size={18} />
-            ) : (
-              <AlertCircle size={18} />
-            )}
-            {message.text}
-            <button
-              type="button"
-              className="btn-close ms-auto"
-              onClick={() => setMessage({ text: "", type: "" })}
-            ></button>
-          </motion.div>
-        )}
 
         {/* Sección de emociones */}
         <motion.div variants={itemVariants} className="mb-4">

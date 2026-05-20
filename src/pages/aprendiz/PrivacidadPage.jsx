@@ -4,7 +4,7 @@ import MainLayout from "../../layouts/MainLayout";
 import { useAuth } from "../../context/AuthContext";
 import { motion } from "framer-motion";
 import { User, Shield, Eye, Save } from "lucide-react";
-import Swal from "sweetalert2";
+import { showSuccess, showError } from "../../utils/alerts";
 
 function PrivacidadPage() {
   const { user, authFetch } = useAuth();
@@ -33,11 +33,11 @@ function PrivacidadPage() {
         method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ visibilidad }),
       });
       if (res.ok) {
-        Swal.fire({ title: "¡Guardado!", text: "Tu configuración de privacidad ha sido actualizada.", icon: "success", showConfirmButton: false, timer: 2000 });
+        showSuccess("¡Guardado!", "Tu configuración de privacidad ha sido actualizada.");
       } else throw new Error("Error en la respuesta del servidor");
     } catch (error) {
       console.error("Error al guardar privacidad:", error);
-      Swal.fire({ title: "Error", text: "No se pudo guardar la configuración. Intenta de nuevo.", icon: "error", confirmButtonColor: "#d33" });
+      showError("Error", "No se pudo guardar la configuración. Intenta de nuevo.");
     }
   };
 

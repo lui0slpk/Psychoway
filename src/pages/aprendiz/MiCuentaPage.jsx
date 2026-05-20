@@ -4,7 +4,7 @@ import MainLayout from "../../layouts/MainLayout";
 import { useAuth } from "../../context/AuthContext";
 import { motion } from "framer-motion";
 import { User, FileText, Lock, Eye, EyeOff, Save, Trash2, Shield, Camera, Upload, X } from "lucide-react";
-import Swal from "sweetalert2";
+import { showError, showSuccess, showConfirm, showPrompt } from "../../utils/alerts";
 
 const API_URL = "http://localhost:5000/api";
 
@@ -76,11 +76,11 @@ function MiCuentaPage() {
   const handleFileSelect = (file) => {
     if (!file) return;
     if (!file.type.startsWith("image/")) {
-      Swal.fire({ icon: "error", title: "Archivo no válido", text: "Solo se permiten imágenes (JPG, PNG, GIF, WEBP).", confirmButtonColor: "#d33" });
+      showError("Archivo no válido", "Solo se permiten imágenes (JPG, PNG, GIF, WEBP).");
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      Swal.fire({ icon: "error", title: "Imagen muy grande", text: "La imagen no debe superar 5 MB.", confirmButtonColor: "#d33" });
+      showError("Imagen muy grande", "La imagen no debe superar 5 MB.");
       return;
     }
 
@@ -123,11 +123,11 @@ function MiCuentaPage() {
     // Validar contraseñas
     if (formData.password || formData.confirmPassword) {
       if (formData.password !== formData.confirmPassword) {
-        Swal.fire({ icon: "error", title: "Error", text: "Las contraseñas no coinciden.", confirmButtonColor: "#d33" });
+        showError("Error", "Las contraseñas no coinciden.");
         return;
       }
       if (formData.password.length < 6) {
-        Swal.fire({ icon: "error", title: "Error", text: "La contraseña debe tener al menos 6 caracteres.", confirmButtonColor: "#d33" });
+        showError("Error", "La contraseña debe tener al menos 6 caracteres.");
         return;
       }
     }
@@ -170,27 +170,14 @@ function MiCuentaPage() {
         setFormData(prev => ({ ...prev, password: "", confirmPassword: "" }));
         setProfilePhoto(null);
 
-        Swal.fire({
-          icon: "success",
-          title: "¡Guardado!",
-          text: "Tu perfil ha sido actualizado correctamente.",
-          showConfirmButton: false,
-          timer: 2000,
-          background: "#fff",
-          iconColor: "#005222",
-        });
+        showSuccess("¡Guardado!", "Tu perfil ha sido actualizado correctamente.");
       } else {
         const errData = await res.json().catch(() => ({}));
         throw new Error(errData.message || "Error al actualizar");
       }
     } catch (error) {
       console.error("Error al guardar:", error);
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: error.message || "No se pudo actualizar el perfil. Intenta de nuevo.",
-        confirmButtonColor: "#d33",
-      });
+      showError("Error", error.message || "No se pudo actualizar el perfil. Intenta de nuevo.");
     } finally {
       setSaving(false);
     }
@@ -198,37 +185,26 @@ function MiCuentaPage() {
 
   // ==================== ELIMINAR CUENTA ====================
   const handleDelete = async () => {
-    const result = await Swal.fire({
-      title: "¿Eliminar tu cuenta?",
-      html: `
-        <p style="color:#666; margin-bottom:8px;">Esta acción <b>no se puede deshacer</b>.</p>
-        <p style="color:#666;">Se eliminarán todos tus datos: diario, objetivos, conversaciones y citas.</p>
-      `,
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#d33",
-      cancelButtonColor: "#6c757d",
-      confirmButtonText: "Sí, eliminar cuenta",
-      cancelButtonText: "Cancelar",
-      reverseButtons: true,
-    });
+    const result = await showConfirm(
+      "¿Eliminar tu cuenta?",
+      `<p style="color:#666; margin-bottom:8px;">Esta acción <b>no se puede deshacer</b>.</p>
+        <p style="color:#666;">Se eliminarán todos tus datos: diario, objetivos, conversaciones y citas.</p>`,
+      { confirmButtonText: "Sí, eliminar cuenta" }
+    );
 
     if (result.isConfirmed) {
       // Confirmación doble
-      const confirm2 = await Swal.fire({
-        title: "Confirmación final",
-        text: "Escribe ELIMINAR para confirmar.",
-        input: "text",
-        inputPlaceholder: "ELIMINAR",
-        showCancelButton: true,
-        confirmButtonColor: "#d33",
-        cancelButtonColor: "#6c757d",
-        confirmButtonText: "Eliminar permanentemente",
-        cancelButtonText: "Cancelar",
-        inputValidator: (value) => {
-          if (value !== "ELIMINAR") return "Debes escribir ELIMINAR para confirmar.";
-        },
-      });
+      const confirm2 = await showPrompt(
+        "Confirmación final",
+        "Escribe ELIMINAR para confirmar.",
+        {
+          inputPlaceholder: "ELIMINAR",
+          confirmButtonText: "Eliminar permanentemente",
+          inputValidator: (value) => {
+            if (value !== "ELIMINAR") return "Debes escribir ELIMINAR para confirmar.";
+          },
+        }
+      );
 
       if (confirm2.isConfirmed) {
         try {
@@ -236,13 +212,7 @@ function MiCuentaPage() {
           const res = await authFetch(`${API_URL}/users/delete/${userId}`, { method: "DELETE" });
 
           if (res.ok) {
-            await Swal.fire({
-              icon: "success",
-              title: "Cuenta eliminada",
-              text: "Tu cuenta ha sido eliminada. Serás redirigido al inicio.",
-              showConfirmButton: false,
-              timer: 2500,
-            });
+            await showSuccess("Cuenta eliminada", "Tu cuenta ha sido eliminada. Serás redirigido al inicio.", { timer: 2500 });
             logout();
             navigate("/");
           } else {
@@ -251,12 +221,7 @@ function MiCuentaPage() {
           }
         } catch (error) {
           console.error("Error al eliminar:", error);
-          Swal.fire({
-            icon: "error",
-            title: "Error",
-            text: error.message || "No se pudo eliminar la cuenta. Intenta de nuevo.",
-            confirmButtonColor: "#d33",
-          });
+          showError("Error", error.message || "No se pudo eliminar la cuenta. Intenta de nuevo.");
         }
       }
     }

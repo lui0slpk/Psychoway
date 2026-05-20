@@ -1,14 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { showSuccess, showError } from "../utils/alerts";
 
 function ResetPassword() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const token = searchParams.get("token");
 
-  const [showSuccess, setShowSuccess] = useState(false);
-  const [showError, setShowError] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
   const [showPassword, setShowPassword] = useState(false);
@@ -61,11 +59,12 @@ function ResetPassword() {
     </span>
   );
 
-  // Verificar que el token existe
   useEffect(() => {
     if (!token) {
-      setErrorMessage("No se proporcionó un token de recuperación válido.");
-      setShowError(true);
+      showError(
+        "Token inválido",
+        "No se proporcionó un token de recuperación válido."
+      );
     }
   }, [token]);
 
@@ -93,26 +92,25 @@ function ResetPassword() {
       const data = await response.json();
 
       if (response.ok) {
-        setShowSuccess(true);
+        showSuccess(
+          "¡Contraseña Actualizada!",
+          "Tu contraseña ha sido restablecida correctamente. Redirigiendo al inicio de sesión..."
+        );
         setTimeout(() => {
           navigate("/");
         }, 2500);
       } else {
-        setErrorMessage(data.message || "Error al restablecer la contraseña.");
-        setShowError(true);
-        setTimeout(() => {
-          setShowError(false);
-        }, 4000);
+        showError(
+          "Error",
+          data.message || "Error al restablecer la contraseña."
+        );
       }
     } catch (error) {
       console.error("Error:", error);
-      setErrorMessage(
-        "Error al conectar con el servidor. Asegúrate de que el backend esté corriendo.",
+      showError(
+        "Error de conexión",
+        "Error al conectar con el servidor. Asegúrate de que el backend esté corriendo."
       );
-      setShowError(true);
-      setTimeout(() => {
-        setShowError(false);
-      }, 4000);
     } finally {
       setLoading(false);
     }
@@ -120,73 +118,6 @@ function ResetPassword() {
 
   return (
     <>
-      {/* Modal de éxito */}
-      {showSuccess && (
-        <div
-          className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center"
-          style={{
-            backgroundColor: "rgba(51, 45, 45, 0.5)",
-            zIndex: 9999,
-          }}
-        >
-          <div
-            className="bg-white rounded-4 p-5 text-center shadow-lg"
-            style={{ maxWidth: "400px" }}
-          >
-            <div className="mb-3">
-              <i
-                className="fas fa-check-circle text-success"
-                style={{ fontSize: "4rem" }}
-              ></i>
-            </div>
-            <h3 className="fw-bold text-success mb-2">
-              ¡Contraseña Actualizada!
-            </h3>
-            <p className="text-muted mb-0">
-              Tu contraseña ha sido restablecida correctamente.
-            </p>
-            <p className="text-muted mt-2">
-              Redirigiendo al inicio de sesión...
-            </p>
-            <div
-              className="spinner-border spinner-border-sm text-primary mt-2"
-              role="status"
-            >
-              <span className="visually-hidden">Cargando...</span>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal de error */}
-      {showError && (
-        <div
-          className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center"
-          style={{
-            backgroundColor: "rgba(51, 45, 45, 0.5)",
-            zIndex: 9999,
-          }}
-        >
-          <div
-            className="bg-white rounded-4 p-5 text-center shadow-lg"
-            style={{ maxWidth: "400px" }}
-          >
-            <div className="mb-3">
-              <i
-                className="fas fa-times-circle text-danger"
-                style={{ fontSize: "4rem" }}
-              ></i>
-            </div>
-            <h3 className="fw-bold text-danger mb-2">Error</h3>
-            <p className="text-muted mb-0">{errorMessage}</p>
-            <div className="mt-3">
-              <Link to="/" className="btn btn-outline-secondary btn-sm">
-                Volver al inicio
-              </Link>
-            </div>
-          </div>
-        </div>
-      )}
 
       <div className="container-fluid bg-custom-green min-vh-100 d-flex justify-content-center align-items-center">
         <div

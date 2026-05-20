@@ -1,10 +1,9 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { showSuccess, showError, showWarning } from "../utils/alerts";
 
 function Registro() {
   const navigate = useNavigate();
-  const [showSuccess, setShowSuccess] = useState(false);
-  const [showDuplicateError, setShowDuplicateError] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [touched, setTouched] = useState({});
@@ -86,15 +85,16 @@ function Registro() {
     });
 
     if (!formularioValido) {
-      alert(
-        "Por favor corrige los errores en el formulario antes de continuar.",
+      showWarning(
+        "Formulario incompleto",
+        "Por favor corrige los errores en el formulario antes de continuar."
       );
       return;
     }
 
     // Validar contraseñas
     if (form.contraseña !== form.confirmarContraseña) {
-      alert("Las contraseñas no coinciden");
+      showError("Error", "Las contraseñas no coinciden");
       return;
     }
 
@@ -119,96 +119,29 @@ function Registro() {
       const data = await response.json();
       if (response.ok) {
         console.log(data);
-        setShowSuccess(true);
+        showSuccess("¡Registro Exitoso!", "Tu cuenta ha sido creada correctamente.");
         // Redirigir después de 2 segundos
         setTimeout(() => {
           navigate("/");
         }, 2000);
       } else {
         if (response.status === 409) {
-          setShowDuplicateError(true);
+          showError(
+            "Usuario ya registrado",
+            "El documento o correo electrónico que intentas registrar ya existe."
+          );
         } else {
-          alert("❌ Error al registrar usuario");
+          showError("Error", "❌ Error al registrar usuario");
         }
       }
     } catch (error) {
       console.error("Error en la solicitud:", error);
-      alert("Error al conectar con el servidor");
+      showError("Error de conexión", "Error al conectar con el servidor");
     }
   };
 
   return (
     <>
-      {/* Modal de éxito */}
-      {showSuccess && (
-        <div
-          className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center"
-          style={{
-            backgroundColor: "rgba(51, 45, 45, 0.5)",
-            zIndex: 9999,
-          }}
-        >
-          <div
-            className="bg-white rounded-4 p-5 text-center shadow-lg"
-            style={{ maxWidth: "400px" }}
-          >
-            <div className="mb-3">
-              <i
-                className="fas fa-check-circle text-success"
-                style={{ fontSize: "4rem" }}
-              ></i>
-            </div>
-            <h3 className="fw-bold text-success mb-2">¡Registro Exitoso!</h3>
-            <p className="text-muted mb-0">
-              Tu cuenta ha sido creada correctamente.
-            </p>
-            <p className="text-muted">Redirigiendo al inicio de sesión...</p>
-            <div
-              className="spinner-border spinner-border-sm text-primary mt-2"
-              role="status"
-            >
-              <span className="visually-hidden">Cargando...</span>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal de error por duplicado */}
-      {showDuplicateError && (
-        <div
-          className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center"
-          style={{
-            backgroundColor: "rgba(51, 45, 45, 0.5)",
-            zIndex: 9999,
-          }}
-        >
-          <div
-            className="bg-white rounded-4 p-5 text-center shadow-lg"
-            style={{ maxWidth: "400px" }}
-          >
-            <div className="mb-3">
-              <i
-                className="fas fa-exclamation-circle text-danger"
-                style={{ fontSize: "4rem" }}
-              ></i>
-            </div>
-            <h3 className="fw-bold text-dark mb-2">
-              El usuario ya se encuentra en el sistema
-            </h3>
-            <p className="text-muted mb-4">
-              El documento o correo electrónico que intentas registrar ya
-              existe.
-            </p>
-            <button
-              className="btn btn-danger px-4 py-2 fw-bold text-white rounded-3"
-              onClick={() => setShowDuplicateError(false)}
-            >
-              Entendido
-            </button>
-          </div>
-        </div>
-      )}
-
       <div className="container-fluid bg-custom-green min-vh-100 d-flex justify-content-center align-items-center">
         <div
           className="card p-5 border-0 shadow-lg position-relative"
