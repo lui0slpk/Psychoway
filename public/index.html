@@ -31,6 +31,32 @@
     <link href="%PUBLIC_URL%/css/styles.css" rel="stylesheet" />
     <!-- FontAwesome -->
     <script src="https://use.fontawesome.com/releases/v6.3.0/js/all.js" crossorigin="anonymous"></script>
+    <script>
+      // Fix for "Failed to execute 'removeChild' on 'Node'" crashes
+      // caused by browser extensions (like Google Translate) modifying the DOM.
+      (function () {
+        if (typeof Node !== 'undefined' && Node.prototype) {
+          if (Node.prototype.removeChild) {
+            const originalRemoveChild = Node.prototype.removeChild;
+            Node.prototype.removeChild = function (child) {
+              if (child.parentNode !== this) {
+                return child;
+              }
+              return originalRemoveChild.apply(this, arguments);
+            };
+          }
+          if (Node.prototype.insertBefore) {
+            const originalInsertBefore = Node.prototype.insertBefore;
+            Node.prototype.insertBefore = function (newNode, referenceNode) {
+              if (referenceNode && referenceNode.parentNode !== this) {
+                return originalInsertBefore.call(this, newNode, null);
+              }
+              return originalInsertBefore.apply(this, arguments);
+            };
+          }
+        }
+      })();
+    </script>
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>

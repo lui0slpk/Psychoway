@@ -21,8 +21,8 @@
   },
   "scripts": {
     "frontend": "react-scripts start",
-    "server": "cd Backend && npm start",
-    "start": "concurrently \"npm run frontend\" \"npm run server\"",
+    "server": "cd Backend && pnpm start",
+    "start": "concurrently \"pnpm run frontend\" \"pnpm run server\"",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"

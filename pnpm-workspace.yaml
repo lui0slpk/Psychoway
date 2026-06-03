@@ -1,0 +1,10 @@
+packages:
+  - '.'
+  - 'Backend'
+
+allowBuilds:
+  '@google/genai': true
+  bcrypt: true
+  core-js: true
+  core-js-pure: true
+  protobufjs: true
