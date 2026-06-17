@@ -6,10 +6,10 @@ import { query, execute } from "../config/database.js";
 export async function create(userId, nombre, descripcion, estado) {
   const result = await execute(
     `INSERT INTO objetivos (id_user, nombre_objetivo, descripcion, estado, last_update)
-     VALUES (?, ?, ?, ?, NOW())`,
+     VALUES ($1, $2, $3, $4, NOW()) RETURNING id_objetives`,
     [userId, nombre, descripcion || null, estado || "Pendiente"],
   );
-  return result.insertId;
+  return result.rows[0].id_objetives;
 }
 
 /**
@@ -18,7 +18,7 @@ export async function create(userId, nombre, descripcion, estado) {
 export async function findByUserId(userId) {
   return query(
     `SELECT id_objetives, nombre_objetivo, descripcion, estado, last_update
-     FROM objetivos WHERE id_user = ?
+     FROM objetivos WHERE id_user = $1
      ORDER BY last_update DESC`,
     [userId],
   );
@@ -30,11 +30,11 @@ export async function findByUserId(userId) {
 export async function update(id, nombre, descripcion, estado) {
   const result = await execute(
     `UPDATE objetivos 
-     SET nombre_objetivo = ?, descripcion = ?, estado = ?, last_update = NOW()
-     WHERE id_objetives = ?`,
+     SET nombre_objetivo = $1, descripcion = $2, estado = $3, last_update = NOW()
+     WHERE id_objetives = $4`,
     [nombre, descripcion, estado, id],
   );
-  return result.affectedRows > 0;
+  return result.rowCount > 0;
 }
 
 /**
@@ -42,10 +42,10 @@ export async function update(id, nombre, descripcion, estado) {
  */
 export async function deleteById(id) {
   const result = await execute(
-    "DELETE FROM objetivos WHERE id_objetives = ?",
+    "DELETE FROM objetivos WHERE id_objetives = $1",
     [id],
   );
-  return result.affectedRows > 0;
+  return result.rowCount > 0;
 }
 
 /**

@@ -5,7 +5,7 @@ import { query, execute } from "../config/database.js";
  */
 export async function isSlotTaken(professionalId, day, hour) {
   const rows = await query(
-    "SELECT * FROM meetings_agenda WHERE id_professional = ? AND day = ? AND hour = ?",
+    "SELECT id_meetings_agenda FROM meetings_agenda WHERE id_professional = $1 AND day = $2 AND hour = $3",
     [professionalId, day, hour],
   );
   return rows.length > 0;
@@ -17,10 +17,10 @@ export async function isSlotTaken(professionalId, day, hour) {
 export async function create(userId, professionalId, day, hour, description) {
   const result = await execute(
     `INSERT INTO meetings_agenda (id_user, id_professional, day, hour, descripcion, last_update)
-     VALUES (?, ?, ?, ?, ?, NOW())`,
+     VALUES ($1, $2, $3, $4, $5, NOW()) RETURNING id_meetings_agenda`,
     [userId, professionalId, day, hour, description || ""],
   );
-  return result.insertId;
+  return result.rows[0].id_meetings_agenda;
 }
 
 /**
@@ -28,7 +28,7 @@ export async function create(userId, professionalId, day, hour, description) {
  */
 export async function findByProfessionalId(professionalId) {
   return query(
-    "SELECT day, hour FROM meetings_agenda WHERE id_professional = ?",
+    "SELECT day, hour FROM meetings_agenda WHERE id_professional = $1",
     [professionalId],
   );
 }
@@ -43,7 +43,7 @@ export async function findByUserId(userId) {
        u.names as prof_names, u.last_names as prof_last_names
      FROM meetings_agenda m
      LEFT JOIN users u ON m.id_professional = u.id_user
-     WHERE m.id_user = ?
+     WHERE m.id_user = $1
      ORDER BY m.day DESC, m.hour ASC`,
     [userId],
   );
@@ -60,7 +60,7 @@ export async function findByProfessionalHistory(professionalId) {
        u.document as apprentice_document
      FROM meetings_agenda m
      LEFT JOIN users u ON m.id_user = u.id_user
-     WHERE m.id_professional = ?
+     WHERE m.id_professional = $1
      ORDER BY m.day DESC, m.hour ASC`,
     [professionalId],
   );

@@ -19,10 +19,10 @@ export async function findAll() {
  */
 export async function markAsRead(alertId) {
   const result = await execute(
-    "UPDATE psychologist_alerts SET leido = TRUE WHERE id_alert = ?",
+    "UPDATE psychologist_alerts SET leido = TRUE WHERE id_alert = $1",
     [alertId],
   );
-  return result.affectedRows > 0;
+  return result.rowCount > 0;
 }
 
 /**
@@ -30,7 +30,7 @@ export async function markAsRead(alertId) {
  */
 export async function create(userId, motivo) {
   await execute(
-    "INSERT INTO psychologist_alerts (id_user, motivo) VALUES (?, ?)",
+    "INSERT INTO psychologist_alerts (id_user, motivo) VALUES ($1, $2)",
     [userId, motivo],
   );
 }
