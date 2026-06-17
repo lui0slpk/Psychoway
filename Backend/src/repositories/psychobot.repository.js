@@ -5,7 +5,7 @@ import { query, execute } from "../config/database.js";
  */
 export async function getSessionsByUserId(userId) {
   return query(
-    "SELECT id_session, title, created_at FROM psychobot_sessions WHERE id_user = ? ORDER BY created_at DESC",
+    "SELECT id_session, title, created_at FROM psychobot_sessions WHERE id_user = $1 ORDER BY created_at DESC",
     [userId],
   );
 }
@@ -15,10 +15,10 @@ export async function getSessionsByUserId(userId) {
  */
 export async function createSession(userId, title) {
   const result = await execute(
-    "INSERT INTO psychobot_sessions (id_user, title) VALUES (?, ?)",
+    "INSERT INTO psychobot_sessions (id_user, title) VALUES ($1, $2) RETURNING id_session",
     [userId, title || "Nueva Conversación"],
   );
-  return result.insertId;
+  return result.rows[0].id_session;
 }
 
 /**
@@ -26,10 +26,10 @@ export async function createSession(userId, title) {
  */
 export async function deleteSession(sessionId) {
   const result = await execute(
-    "DELETE FROM psychobot_sessions WHERE id_session = ?",
+    "DELETE FROM psychobot_sessions WHERE id_session = $1",
     [sessionId],
   );
-  return result.affectedRows > 0;
+  return result.rowCount > 0;
 }
 
 /**
@@ -37,7 +37,7 @@ export async function deleteSession(sessionId) {
  */
 export async function getHistoryBySessionId(sessionId) {
   const rows = await query(
-    "SELECT role, message as text FROM psychobot_chats WHERE id_session = ? ORDER BY timestamp ASC",
+    "SELECT role, message as text FROM psychobot_chats WHERE id_session = $1 ORDER BY timestamp ASC",
     [sessionId],
   );
   return rows.map((row) => ({ type: row.role, text: row.text }));
@@ -48,7 +48,7 @@ export async function getHistoryBySessionId(sessionId) {
  */
 export async function saveMessage(userId, sessionId, role, message) {
   await execute(
-    "INSERT INTO psychobot_chats (id_user, id_session, role, message) VALUES (?, ?, ?, ?)",
+    "INSERT INTO psychobot_chats (id_user, id_session, role, message) VALUES ($1, $2, $3, $4)",
     [userId, sessionId, role, message],
   );
 }
@@ -58,7 +58,7 @@ export async function saveMessage(userId, sessionId, role, message) {
  */
 export async function getLatestSession(userId) {
   const rows = await query(
-    "SELECT id_session FROM psychobot_sessions WHERE id_user = ? ORDER BY created_at DESC LIMIT 1",
+    "SELECT id_session FROM psychobot_sessions WHERE id_user = $1 ORDER BY created_at DESC LIMIT 1",
     [userId],
   );
   return rows.length > 0 ? rows[0].id_session : null;
@@ -68,7 +68,7 @@ export async function getLatestSession(userId) {
  * Obtiene los recuerdos/memoria del usuario.
  */
 export async function getMemory(userId) {
-  return query("SELECT fact FROM psychobot_memory WHERE id_user = ?", [userId]);
+  return query("SELECT fact FROM psychobot_memory WHERE id_user = $1", [userId]);
 }
 
 /**
@@ -76,7 +76,7 @@ export async function getMemory(userId) {
  */
 export async function saveMemory(userId, fact) {
   await execute(
-    "INSERT INTO psychobot_memory (id_user, fact) VALUES (?, ?)",
+    "INSERT INTO psychobot_memory (id_user, fact) VALUES ($1, $2)",
     [userId, fact],
   );
 }
@@ -86,7 +86,7 @@ export async function saveMemory(userId, fact) {
  */
 export async function getLastSessionDate(userId) {
   const rows = await query(
-    "SELECT created_at FROM psychobot_sessions WHERE id_user = ? ORDER BY created_at DESC LIMIT 1",
+    "SELECT created_at FROM psychobot_sessions WHERE id_user = $1 ORDER BY created_at DESC LIMIT 1",
     [userId],
   );
   return rows.length > 0 ? rows[0].created_at : null;

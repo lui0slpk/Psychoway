@@ -1,16 +1,21 @@
 import dotenv from "dotenv";
 dotenv.config();
 
+if (!process.env.JWT_SECRET) {
+  throw new Error("FATAL: JWT_SECRET no está definido en las variables de entorno.");
+}
+
+if (!process.env.SUPABASE_URL || !process.env.SUPABASE_DB_URL) {
+  throw new Error("FATAL: SUPABASE_URL y SUPABASE_DB_URL deben estar definidos en .env");
+}
 const env = {
   // Servidor
   PORT: process.env.PORT || 5000,
   NODE_ENV: process.env.NODE_ENV || "development",
 
-  // Base de Datos
-  DB_HOST: process.env.DB_HOST || "localhost",
-  DB_USER: process.env.DB_USER || "root",
-  DB_PASSWORD: process.env.DB_PASSWORD || "",
-  DB_NAME: process.env.DB_NAME || "psychoway",
+  // Supabase / PostgreSQL
+  SUPABASE_URL: process.env.SUPABASE_URL,
+  SUPABASE_DB_URL: process.env.SUPABASE_DB_URL,
 
   // JWT
   JWT_SECRET: process.env.JWT_SECRET || "psychoway_secret_key_2024_s3cur3",

@@ -5,7 +5,7 @@ import { query, execute } from "../config/database.js";
  */
 export async function findByUserId(userId) {
   return query(
-    "SELECT * FROM notifications WHERE id_user = ? ORDER BY created_at DESC",
+    "SELECT * FROM notifications WHERE id_user = $1 ORDER BY created_at DESC",
     [userId],
   );
 }
@@ -15,10 +15,10 @@ export async function findByUserId(userId) {
  */
 export async function markAsRead(notificationId) {
   const result = await execute(
-    "UPDATE notifications SET is_read = TRUE WHERE id_notification = ?",
+    "UPDATE notifications SET is_read = TRUE WHERE id_notification = $1",
     [notificationId],
   );
-  return result.affectedRows > 0;
+  return result.rowCount > 0;
 }
 
 /**
@@ -26,7 +26,7 @@ export async function markAsRead(notificationId) {
  */
 export async function create(userId, type, message, link = null) {
   await execute(
-    "INSERT INTO notifications (id_user, type, message, link) VALUES (?, ?, ?, ?)",
+    "INSERT INTO notifications (id_user, type, message, link) VALUES ($1, $2, $3, $4)",
     [userId, type, message, link],
   );
 }
@@ -36,7 +36,7 @@ export async function create(userId, type, message, link = null) {
  */
 export async function hasUnreadCheckIn(userId) {
   const rows = await query(
-    "SELECT id_notification FROM notifications WHERE id_user = ? AND type = 'check-in' AND is_read = FALSE",
+    "SELECT id_notification FROM notifications WHERE id_user = $1 AND type = 'check-in' AND is_read = FALSE",
     [userId],
   );
   return rows.length > 0;
