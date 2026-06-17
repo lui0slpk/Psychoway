@@ -264,9 +264,9 @@ function MiCuentaPage() {
                           onClick={() => fileInputRef.current?.click()}
                         >
                           {photoPreview ? (
-                            <img src={photoPreview} alt="Foto de perfil" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                            <img key="preview-img" src={photoPreview} alt="Foto de perfil" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                           ) : (
-                            <User size={40} color="#fff" />
+                            <User key="preview-icon" size={40} color="#fff" />
                           )}
                         </div>
                         {photoPreview && (
@@ -391,10 +391,10 @@ function MiCuentaPage() {
               {photoPreview && (
                 <div className="text-center mb-3">
                   <div style={{ width: 64, height: 64, borderRadius: "50%", overflow: "hidden", margin: "0 auto", border: "3px solid #005222" }}>
-                    <img src={photoPreview} alt="Perfil" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    <img key="sidebar-img" src={photoPreview} alt="Perfil" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                   </div>
-                  <p className="fw-semibold small mt-2 mb-0">{formData.nombres} {formData.apellidos}</p>
-                  <p className="text-muted" style={{ fontSize: "0.75rem" }}>Aprendiz</p>
+                  <p className="fw-semibold small mt-2 mb-0"><span>{formData.nombres} {formData.apellidos}</span></p>
+                  <p className="text-muted" style={{ fontSize: "0.75rem" }}><span>Aprendiz</span></p>
                 </div>
               )}
               <div className="d-flex flex-column gap-2">
