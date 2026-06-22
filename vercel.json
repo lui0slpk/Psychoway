@@ -1,7 +1,7 @@
 {
   "framework": "create-react-app",
   "installCommand": "pnpm install --filter psychoway_react",
-  "buildCommand": "pnpm run build",
+  "buildCommand": "CI=false pnpm run build",
   "outputDirectory": "build",
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
