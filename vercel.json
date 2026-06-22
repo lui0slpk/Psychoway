@@ -1,4 +1,8 @@
 {
+  "framework": "create-react-app",
+  "installCommand": "npm install --prefix .",
+  "buildCommand": "npm run build",
+  "outputDirectory": "build",
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
   ]
