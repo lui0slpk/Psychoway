@@ -2,7 +2,7 @@
  * Base URL del backend.
  * Centralizada para cambiar fácilmente entre entornos.
  */
-const API_BASE = "http://localhost:5000";
+const API_BASE = process.env.REACT_APP_API_URL || "http://localhost:5000";
 
 /**
  * URL del API protegida (con JWT).

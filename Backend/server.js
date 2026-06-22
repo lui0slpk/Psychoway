@@ -9,7 +9,10 @@ import { errorHandler } from "./src/middlewares/error.middleware.js";
 const app = express();
 
 // ==================== GLOBAL MIDDLEWARE ====================
-app.use(cors());
+app.use(cors({
+  origin: env.FRONTEND_URL,
+  credentials: true
+}));
 app.use(express.json({ limit: "10mb" }));
 
 // ==================== ROUTES ====================
