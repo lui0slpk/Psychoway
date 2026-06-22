@@ -34,7 +34,7 @@ function GestionModPage() {
   const handleBuscar = async () => {
     if (!buscarDocumento) { showWarning("Aviso", "Por favor ingrese un número de documento"); return; }
     try {
-      const response = await authFetch(`http://localhost:5000/api/users/search/${buscarDocumento}`);
+      const response = await authFetch(`${process.env.REACT_APP_API_URL || `${process.env.REACT_APP_API_URL || "http://localhost:5000"}`}/api/users/search/${buscarDocumento}`);
       if (!response.ok) {
         if (response.status === 404) {
           const ct = response.headers.get("content-type");
@@ -66,7 +66,7 @@ function GestionModPage() {
     if (!documentoValido || (formData.password && !passwordValida)) { showWarning("Aviso", "Corrige los errores."); return; }
     if (formData.password && formData.password !== formData.confirmPassword) { showError("Error", "Las contraseñas no coinciden"); return; }
     try {
-      const r = await authFetch(`http://localhost:5000/api/users/update/${userId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(formData) });
+      const r = await authFetch(`${process.env.REACT_APP_API_URL || `${process.env.REACT_APP_API_URL || "http://localhost:5000"}`}/api/users/update/${userId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(formData) });
       const data = await r.json();
       if (r.ok) {
         showSuccess("¡Usuario Actualizado!", "Datos actualizados.");
@@ -77,7 +77,7 @@ function GestionModPage() {
 
   const executeDelete = async () => {
     try {
-      const r = await authFetch(`http://localhost:5000/api/users/delete/${userId}`, { method: "DELETE" });
+      const r = await authFetch(`${process.env.REACT_APP_API_URL || `${process.env.REACT_APP_API_URL || "http://localhost:5000"}`}/api/users/delete/${userId}`, { method: "DELETE" });
       const data = await r.json();
       if (r.ok) {
         showSuccess("¡Usuario Eliminado!", "Cuenta eliminada.");

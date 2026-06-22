@@ -51,10 +51,10 @@ function PsiSeguimientoPage() {
 
   useEffect(() => {
     const fetchAprendices = async () => {
-      try { const res = await authFetch("http://localhost:5000/api/psychologist/apprentices-with-emotions"); if (res.ok) { const data = await res.json(); setAprendices(data); if (data.length > 0) setSelectedUser(data[0]); } } catch (e) { console.error("Error:", e); } finally { setLoading(false); }
+      try { const res = await authFetch(`${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/psychologist/apprentices-with-emotions`); if (res.ok) { const data = await res.json(); setAprendices(data); if (data.length > 0) setSelectedUser(data[0]); } } catch (e) { console.error("Error:", e); } finally { setLoading(false); }
     };
     const fetchAlerts = async () => {
-      try { const res = await authFetch("http://localhost:5000/api/psychologist/alerts"); if (res.ok) setAlerts(await res.json()); } catch (e) { console.error("Error:", e); }
+      try { const res = await authFetch(`${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/psychologist/alerts`); if (res.ok) setAlerts(await res.json()); } catch (e) { console.error("Error:", e); }
     };
     fetchAprendices(); fetchAlerts();
     const intervalId = setInterval(fetchAlerts, 15000);
@@ -62,14 +62,14 @@ function PsiSeguimientoPage() {
   }, []);
 
   const markAlertAsRead = async (id_alert) => {
-    try { await authFetch(`http://localhost:5000/api/psychologist/alerts/${id_alert}/read`, { method: "PUT" }); setAlerts(prev => prev.map(a => a.id_alert === id_alert ? { ...a, leido: 1 } : a)); } catch (e) { console.error("Error:", e); }
+    try { await authFetch(`${process.env.REACT_APP_API_URL || `${process.env.REACT_APP_API_URL || "http://localhost:5000"}`}/api/psychologist/alerts/${id_alert}/read`, { method: "PUT" }); setAlerts(prev => prev.map(a => a.id_alert === id_alert ? { ...a, leido: 1 } : a)); } catch (e) { console.error("Error:", e); }
   };
 
   useEffect(() => {
     if (!selectedUser) return;
     setPagEmoc(1);
     const fetchHistorial = async () => {
-      try { const res = await authFetch(`http://localhost:5000/api/diary/entries/${selectedUser.id}`); if (res.ok) setHistorial(await res.json()); else setHistorial([]); } catch (e) { setHistorial([]); }
+      try { const res = await authFetch(`${process.env.REACT_APP_API_URL || `${process.env.REACT_APP_API_URL || "http://localhost:5000"}`}/api/diary/entries/${selectedUser.id}`); if (res.ok) setHistorial(await res.json()); else setHistorial([]); } catch (e) { setHistorial([]); }
     };
     fetchHistorial();
   }, [selectedUser]);

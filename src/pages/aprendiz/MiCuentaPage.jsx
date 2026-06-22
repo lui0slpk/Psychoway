@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import { User, FileText, Lock, Eye, EyeOff, Save, Trash2, Shield, Camera, Upload, X } from "lucide-react";
 import { showError, showSuccess, showConfirm, showPrompt } from "../../utils/alerts";
 
-const API_URL = "http://localhost:5000/api";
+const API_URL = `${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api`;
 
 function MiCuentaPage() {
   const { user, authFetch, logout, updateUser } = useAuth();

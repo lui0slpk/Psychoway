@@ -22,16 +22,16 @@ function AgendaPage() {
   const iV = { hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0 } };
 
   const fetchPsychologists = React.useCallback(async () => {
-    try { const r = await authFetch("http://localhost:5000/api/psychologists"); setPsychologists(await r.json()); } catch (e) { console.error("Error:", e); }
+    try { const r = await authFetch(`${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/psychologists`); setPsychologists(await r.json()); } catch (e) { console.error("Error:", e); }
   }, []);
 
   const fetchHistory = React.useCallback(async () => {
     if (!user) return;
-    try { const r = await authFetch(`http://localhost:5000/api/meetings/user/${user.id || user.id_user}`); setHistory(await r.json()); } catch (e) { console.error("Error:", e); }
+    try { const r = await authFetch(`${process.env.REACT_APP_API_URL || `${process.env.REACT_APP_API_URL || "http://localhost:5000"}`}/api/meetings/user/${user.id || user.id_user}`); setHistory(await r.json()); } catch (e) { console.error("Error:", e); }
   }, [user]);
 
   const fetchOccupiedSlots = React.useCallback(async (id) => {
-    try { const r = await authFetch(`http://localhost:5000/api/meetings/psychologist/${id}`); setOccupiedSlots(await r.json()); } catch (e) { console.error("Error:", e); }
+    try { const r = await authFetch(`${process.env.REACT_APP_API_URL || `${process.env.REACT_APP_API_URL || "http://localhost:5000"}`}/api/meetings/psychologist/${id}`); setOccupiedSlots(await r.json()); } catch (e) { console.error("Error:", e); }
   }, []);
 
   const calculateAvailableHours = React.useCallback(() => {
@@ -51,7 +51,7 @@ function AgendaPage() {
     if (!formData.dia || !formData.hora) { showWarning("Aviso", "Por favor asigna un horario disponible desde el panel derecho."); return; }
     const payload = { userId: user.id || user.id_user, professionalId: searchPsychologist, day: formData.dia, hour: formData.hora, description: formData.descripcion };
     try {
-      const r = await authFetch("http://localhost:5000/api/meetings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      const r = await authFetch(`${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/meetings`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       const data = await r.json();
       if (r.ok) { showSuccess("¡Éxito!", "¡Cita agendada con éxito!"); fetchHistory(); fetchOccupiedSlots(searchPsychologist); setFormData({ dia: "", hora: "", descripcion: "" }); }
       else showError("Error", data.message || "Error al agendar cita.");

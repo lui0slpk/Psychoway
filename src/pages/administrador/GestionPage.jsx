@@ -42,7 +42,7 @@ function GestionPage() {
       return;
     }
     try {
-      const response = await authFetch("http://localhost:5000/api/users/create", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(formData) });
+      const response = await authFetch(`${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/users/create`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(formData) });
       const data = await response.json();
       if (response.ok) {
         showSuccess("¡Registro Exitoso!", "El usuario ha sido creado correctamente.");

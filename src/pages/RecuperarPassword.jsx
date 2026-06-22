@@ -12,7 +12,7 @@ function RecuperarPassword() {
 
     try {
       const response = await fetch(
-        "http://localhost:5000/api/password/forgot",
+        `${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/password/forgot`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
