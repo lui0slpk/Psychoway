@@ -291,7 +291,7 @@ function PsychobotPage() {
   const fetchSessions = React.useCallback(async () => {
     if (!userId) return;
     try {
-      const res = await authFetch(`http://localhost:5000/api/psychobot/sessions/${userId}`);
+      const res = await authFetch(`${process.env.REACT_APP_API_URL || `${process.env.REACT_APP_API_URL || "http://localhost:5000"}`}/api/psychobot/sessions/${userId}`);
       if (res.ok) { const data = await res.json(); setSessions(data); if (data.length > 0 && !currentSessionId) setCurrentSessionId(data[0].id_session); }
     } catch (e) { console.error(e); }
   }, [userId, currentSessionId, authFetch]);
@@ -299,7 +299,7 @@ function PsychobotPage() {
   const fetchHistory = React.useCallback(async (sid) => {
     if (!sid) return;
     try {
-      const res = await authFetch(`http://localhost:5000/api/psychobot/history/${sid}`);
+      const res = await authFetch(`${process.env.REACT_APP_API_URL || `${process.env.REACT_APP_API_URL || "http://localhost:5000"}`}/api/psychobot/history/${sid}`);
       if (res.ok) {
         const data = await res.json();
         setChatHistory(data.length === 0 ? [{ type:"bot", text:`¡Hola ${user?.names||""}! Soy Psychobot 🧠. ¿Cómo te sientes hoy?` }] : data);
@@ -314,7 +314,7 @@ function PsychobotPage() {
   const handleNewChat = async () => {
     if (isTyping) return;
     try {
-      const res = await authFetch("http://localhost:5000/api/psychobot/sessions", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ userId, title:"Nueva Conversación" }) });
+      const res = await authFetch(`${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/psychobot/sessions`, { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ userId, title:"Nueva Conversación" }) });
       if (res.ok) { const ns = await res.json(); setSessions(p=>[ns,...p]); setCurrentSessionId(ns.id_session); setChatHistory([{type:"bot",text:"Nueva conversación. ¿En qué puedo ayudarte? 😊"}]); setSidebarOpen(false); }
     } catch (e) { console.error(e); }
   };
@@ -323,7 +323,7 @@ function PsychobotPage() {
     e.stopPropagation();
     if (!window.confirm("¿Borrar esta conversación?")) return;
     try {
-      const res = await authFetch(`http://localhost:5000/api/psychobot/sessions/${id}`, { method:"DELETE" });
+      const res = await authFetch(`${process.env.REACT_APP_API_URL || `${process.env.REACT_APP_API_URL || "http://localhost:5000"}`}/api/psychobot/sessions/${id}`, { method:"DELETE" });
       if (res.ok) { setSessions(p=>p.filter(s=>s.id_session!==id)); if(currentSessionId===id){setCurrentSessionId(null);setChatHistory([]);} }
     } catch (e2) { console.error(e2); }
   };
@@ -334,7 +334,7 @@ function PsychobotPage() {
     setChatHistory(p=>[...p,{type:"user",text:msgToSend}]);
     setIsTyping(true);
     try {
-      const res = await authFetch("http://localhost:5000/api/psychobot/chat", {
+      const res = await authFetch(`${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/psychobot/chat`, {
         method:"POST", headers:{"Content-Type":"application/json"},
         body: JSON.stringify({ userId, message:msgToSend, id_session:currentSessionId, personality, chatHistory:[...chatHistory,{type:"user",text:msgToSend}] })
       });
@@ -356,7 +356,7 @@ function PsychobotPage() {
     setIsTyping(true);
     setChatHistory(p=>[...p,{type:"user",text:"¿Puedes darme mi resumen semanal?"}]);
     try {
-      const res = await authFetch("http://localhost:5000/api/psychobot/weekly-summary", {
+      const res = await authFetch(`${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/psychobot/weekly-summary`, {
         method:"POST", headers:{"Content-Type":"application/json"},
         body: JSON.stringify({ userId })
       });

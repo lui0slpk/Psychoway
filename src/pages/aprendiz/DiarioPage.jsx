@@ -63,7 +63,7 @@ function DiarioPage() {
     if (!userId) return;
     try {
       const response = await authFetch(
-        `http://localhost:5000/api/objectives/${userId}`,
+        `${process.env.REACT_APP_API_URL || `${process.env.REACT_APP_API_URL || "http://localhost:5000"}`}/api/objectives/${userId}`,
       );
       if (response.ok) {
         const data = await response.json();
@@ -132,7 +132,7 @@ function DiarioPage() {
 
     setLoading(true);
     try {
-      const response = await authFetch("http://localhost:5000/api/diary/entry", {
+      const response = await authFetch(`${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/diary/entry`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -179,7 +179,7 @@ function DiarioPage() {
 
     setLoading(true);
     try {
-      const response = await authFetch("http://localhost:5000/api/objectives", {
+      const response = await authFetch(`${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/objectives`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -220,7 +220,7 @@ function DiarioPage() {
     setLoading(true);
     try {
       const response = await authFetch(
-        `http://localhost:5000/api/objectives/${objetivoActualizar.seleccionado}`,
+        `${process.env.REACT_APP_API_URL || `${process.env.REACT_APP_API_URL || "http://localhost:5000"}`}/api/objectives/${objetivoActualizar.seleccionado}`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -272,7 +272,7 @@ function DiarioPage() {
     setLoading(true);
     try {
       const response = await authFetch(
-        `http://localhost:5000/api/objectives/${objetivoActualizar.seleccionado}`,
+        `${process.env.REACT_APP_API_URL || `${process.env.REACT_APP_API_URL || "http://localhost:5000"}`}/api/objectives/${objetivoActualizar.seleccionado}`,
         {
           method: "DELETE",
         },

@@ -18,7 +18,7 @@ function Navbar({ pageTitle, pageSubtitle }) {
   useEffect(() => {
     if (user?.rol === "aprendiz" && user?.id_user) {
       // 1. Disparar el check-in proactivo
-      authFetch("http://localhost:5000/api/notifications/check-in", {
+      authFetch(`${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/notifications/check-in`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId: user.id_user })
@@ -31,7 +31,7 @@ function Navbar({ pageTitle, pageSubtitle }) {
 
   const fetchNotifications = async () => {
     try {
-      const res = await authFetch(`http://localhost:5000/api/notifications/${user.id_user}`);
+      const res = await authFetch(`${process.env.REACT_APP_API_URL || `${process.env.REACT_APP_API_URL || "http://localhost:5000"}`}/api/notifications/${user.id_user}`);
       if (res.ok) {
         const data = await res.json();
         setNotifications(data);
@@ -44,7 +44,7 @@ function Navbar({ pageTitle, pageSubtitle }) {
   const handleReadNotification = async (notif) => {
     try {
       if (!notif.is_read) {
-        await authFetch(`http://localhost:5000/api/notifications/${notif.id_notification}/read`, { method: "PUT" });
+        await authFetch(`${process.env.REACT_APP_API_URL || `${process.env.REACT_APP_API_URL || "http://localhost:5000"}`}/api/notifications/${notif.id_notification}/read`, { method: "PUT" });
         setNotifications(prev => prev.map(n => n.id_notification === notif.id_notification ? { ...n, is_read: 1 } : n));
       }
       setShowDropdown(false);

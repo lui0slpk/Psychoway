@@ -80,7 +80,7 @@ function SeguimientoPage() {
     const fetchHistorial = async () => {
       try {
         const res = await authFetch(
-          `http://localhost:5000/api/diary/entries/${userId}`,
+          `${process.env.REACT_APP_API_URL || `${process.env.REACT_APP_API_URL || "http://localhost:5000"}`}/api/diary/entries/${userId}`,
         );
         if (res.ok) setHistorial(await res.json());
       } catch (e) {
@@ -91,7 +91,7 @@ function SeguimientoPage() {
     const fetchObjetivos = async () => {
       try {
         const res = await authFetch(
-          `http://localhost:5000/api/objectives/${userId}`,
+          `${process.env.REACT_APP_API_URL || `${process.env.REACT_APP_API_URL || "http://localhost:5000"}`}/api/objectives/${userId}`,
         );
         if (res.ok) setObjetivos(await res.json());
       } catch (e) {

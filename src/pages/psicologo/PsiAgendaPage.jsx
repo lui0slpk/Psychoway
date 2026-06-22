@@ -21,12 +21,12 @@ function PsiAgendaPage() {
 
   const fetchHistory = React.useCallback(async () => {
     const pid = user.id || user.id_user;
-    try { const r = await authFetch(`http://localhost:5000/api/meetings/professional-history/${pid}`); setHistory(await r.json()); } catch (e) { console.error("Error:", e); }
+    try { const r = await authFetch(`${process.env.REACT_APP_API_URL || `${process.env.REACT_APP_API_URL || "http://localhost:5000"}`}/api/meetings/professional-history/${pid}`); setHistory(await r.json()); } catch (e) { console.error("Error:", e); }
   }, [user]);
 
   const fetchOccupiedSlots = React.useCallback(async () => {
     const pid = user.id || user.id_user;
-    try { const r = await authFetch(`http://localhost:5000/api/meetings/psychologist/${pid}`); setOccupiedSlots(await r.json()); } catch (e) { console.error("Error:", e); }
+    try { const r = await authFetch(`${process.env.REACT_APP_API_URL || `${process.env.REACT_APP_API_URL || "http://localhost:5000"}`}/api/meetings/psychologist/${pid}`); setOccupiedSlots(await r.json()); } catch (e) { console.error("Error:", e); }
   }, [user]);
 
   useEffect(() => { if (user && (user.id || user.id_user)) { fetchHistory(); fetchOccupiedSlots(); } }, [user, fetchHistory, fetchOccupiedSlots]);
@@ -36,7 +36,7 @@ function PsiAgendaPage() {
   const handleBuscarAprendiz = async () => {
     if (!formData.documentoAprendiz) { showWarning("Aviso", "Ingresa un documento para buscar."); return; }
     try {
-      const r = await authFetch(`http://localhost:5000/api/users/search/${formData.documentoAprendiz}`);
+      const r = await authFetch(`${process.env.REACT_APP_API_URL || `${process.env.REACT_APP_API_URL || "http://localhost:5000"}`}/api/users/search/${formData.documentoAprendiz}`);
       const data = await r.json();
       if (r.ok) {
         setFoundApprentice(data);
@@ -58,7 +58,7 @@ function PsiAgendaPage() {
     if (!foundApprentice) { showWarning("Aviso", "Primero debes buscar y encontrar un aprendiz válido."); return; }
     const payload = { userId: foundApprentice.id_user, professionalId: user.id || user.id_user, day: formData.dia, hour: formData.hora, description: formData.descripcion };
     try {
-      const r = await authFetch("http://localhost:5000/api/meetings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      const r = await authFetch(`${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/meetings`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       const data = await r.json();
       if (r.ok) { showSuccess("¡Éxito!", "¡Cita agendada con éxito!"); fetchHistory(); fetchOccupiedSlots(); setFormData({ ...formData, descripcion: "" }); }
       else showError("Error", data.message || "Error al agendar cita.");
