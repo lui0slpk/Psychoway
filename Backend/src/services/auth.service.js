@@ -5,6 +5,7 @@ import env from "../config/environment.js";
 import * as userRepo from "../repositories/user.repository.js";
 import { sendPasswordResetEmail } from "./email.service.js";
 import { ROLES } from "../utils/constants.js";
+import { validateAgeByDocType } from "./users.service.js";
 
 /**
  * Almacén temporal de tokens de recuperación.
@@ -17,6 +18,9 @@ const resetTokens = new Map();
  */
 export async function register(userData) {
   const { document, doc_type, names, last_names, birth_date, email, password } = userData;
+
+  // Validar coherencia edad ↔ tipo de documento
+  validateAgeByDocType(doc_type, birth_date);
 
   // Verificar si ya existe
   const exists = await userRepo.existsByDocumentOrEmail(document, email);

@@ -10,7 +10,7 @@ import { ROLES, ROLE_IDS } from "../utils/constants.js";
  * @param {string} docType  - Código del tipo de documento (CC, CE, TI, PA…)
  * @param {string} birthDate - Fecha en formato YYYY-MM-DD o ISO
  */
-function validateAgeByDocType(docType, birthDate) {
+export function validateAgeByDocType(docType, birthDate) {
   if (!docType || !birthDate) return; // Si falta alguno, no bloqueamos
 
   const hoy = new Date();
