@@ -36,6 +36,24 @@ function Registro() {
         form.contraseña,
       ),
     },
+    fechaNacimiento: {
+      valida: form.fechaNacimiento && form.tipoDocumento ? (() => {
+        const hoy = new Date();
+        hoy.setHours(0, 0, 0, 0);
+        const [año, mes, dia] = form.fechaNacimiento.split("-");
+        const nacimiento = new Date(año, mes - 1, dia);
+        
+        let edad = hoy.getFullYear() - nacimiento.getFullYear();
+        const m = hoy.getMonth() - nacimiento.getMonth();
+        if (m < 0 || (m === 0 && hoy.getDate() < nacimiento.getDate())) {
+          edad--;
+        }
+
+        if ((form.tipoDocumento === "CC" || form.tipoDocumento === "CE") && edad < 18) return false;
+        if (form.tipoDocumento === "TI" && edad >= 18) return false;
+        return true;
+      })() : false,
+    },
   };
 
   const igualContraseña = form.confirmarContraseña === form.contraseña;
@@ -45,7 +63,8 @@ function Registro() {
   const contraseñaValida = Object.values(validaciones.contraseña).every(
     Boolean,
   );
-  const formularioValido = documentoValido && correoValido && contraseñaValida;
+  const fechaNacimientoValida = validaciones.fechaNacimiento.valida;
+  const formularioValido = documentoValido && correoValido && contraseñaValida && fechaNacimientoValida;
 
   const handleChange = (e) => {
     let value = e.target.value;
@@ -82,7 +101,14 @@ function Registro() {
       correo: true,
       contraseña: true,
       confirmarContraseña: true,
+      fechaNacimiento: true,
+      tipoDocumento: true,
     });
+
+    if (!validaciones.fechaNacimiento.valida) {
+      showError("Error", "La fecha de nacimiento no es válida para el tipo de documento seleccionado");
+      return;
+    }
 
     if (!formularioValido) {
       showWarning(
@@ -251,6 +277,14 @@ function Registro() {
                     placeholder="dd/mm/aaaa"
                   />
                 </div>
+                {touched.fechaNacimiento && form.fechaNacimiento && (
+                  <div className="mt-1">
+                    <Regla
+                      ok={validaciones.fechaNacimiento.valida}
+                      texto="La edad debe corresponder al tipo de documento"
+                    />
+                  </div>
+                )}
               </div>
               <div className="col-md-6">
                 <label className="form-label text-muted small fw-bold">

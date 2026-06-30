@@ -19,16 +19,16 @@ const router = Router();
 router.post("/register", authCtrl.register);
 router.post("/login", authCtrl.login);
 
+// Password recovery — públicas, definidas ANTES del middleware JWT
+router.post("/api/password/forgot", authCtrl.forgotPassword);
+router.post("/api/password/reset", authCtrl.resetPassword);
+
 // ==================== MIDDLEWARE JWT para /api/* ====================
 router.use("/api", authMiddleware);
 
 // ==================== RUTAS PROTEGIDAS (con JWT) ====================
 // Auth
 router.get("/api/auth/verify", authCtrl.verify);
-
-// Password recovery (marcadas como públicas dentro del middleware)
-router.post("/api/password/forgot", authCtrl.forgotPassword);
-router.post("/api/password/reset", authCtrl.resetPassword);
 
 // Diary
 router.use("/api/diary", diaryRoutes);

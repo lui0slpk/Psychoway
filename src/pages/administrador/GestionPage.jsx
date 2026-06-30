@@ -20,9 +20,22 @@ function GestionPage() {
       tieneMinuscula: /[a-z]/.test(formData.password), tieneNumero: /[0-9]/.test(formData.password),
       tieneEspecial: /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(formData.password),
     },
+    fechaNacimiento: {
+      valida: formData.fechaNacimiento && formData.tipoDocumento ? (() => {
+        const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+        const nac = new Date(formData.fechaNacimiento);
+        let edad = hoy.getFullYear() - nac.getFullYear();
+        const m = hoy.getMonth() - nac.getMonth();
+        if (m < 0 || (m === 0 && hoy.getDate() < nac.getDate())) edad--;
+        if ((formData.tipoDocumento === "CC" || formData.tipoDocumento === "CE") && edad < 18) return false;
+        if (formData.tipoDocumento === "TI" && edad >= 18) return false;
+        return true;
+      })() : (formData.fechaNacimiento ? true : false),
+    },
   };
   const documentoValido = Object.values(validaciones.documento).every(Boolean);
   const passwordValida = Object.values(validaciones.password).every(Boolean);
+  const fechaValida = validaciones.fechaNacimiento.valida;
 
   const Regla = ({ ok, texto }) => (<span style={{ display: "block", fontSize: "13px", color: ok ? "#005222" : "#dc3545" }}>{ok ? "✅" : "❌"} {texto}</span>);
 
@@ -33,12 +46,16 @@ function GestionPage() {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault(); setTouched({ password: true, documento: true });
+    e.preventDefault(); setTouched({ password: true, documento: true, fechaNacimiento: true });
     if (!passwordValida || !documentoValido) {
       showWarning(
         "Formulario incompleto",
         "Por favor corrige los errores en el formulario antes de continuar."
       );
+      return;
+    }
+    if (!fechaValida) {
+      showError("Fecha inválida", "La fecha de nacimiento no corresponde al tipo de documento seleccionado.");
       return;
     }
     try {
@@ -94,6 +111,9 @@ function GestionPage() {
                 <div className="mb-3">
                   <label className="form-label small fw-semibold">Fecha de nacimiento <span className="text-danger">*</span></label>
                   <input type="date" className="form-control rounded-3 border-2" id="fechaNacimiento" value={formData.fechaNacimiento} onChange={handleChange} required />
+                  {touched.fechaNacimiento && formData.fechaNacimiento && (
+                    <div className="mt-1"><Regla ok={validaciones.fechaNacimiento.valida} texto="La edad debe corresponder al tipo de documento" /></div>
+                  )}
                 </div>
                 <div className="mb-3">
                   <label className="form-label small fw-semibold">Correo <span className="text-danger">*</span></label>

@@ -20,6 +20,8 @@ function RecuperarPassword() {
         },
       );
 
+      const data = await response.json();
+
       if (response.ok) {
         showSuccess(
           "¡Envío Exitoso!",
@@ -30,15 +32,15 @@ function RecuperarPassword() {
         }, 2000);
       } else {
         showError(
-          "¡Correo no encontrado!",
-          "El correo ingresado no se encuentra registrado en nuestra base de datos."
+          "Error",
+          data.message || "El correo ingresado no se encuentra registrado en nuestra base de datos."
         );
       }
     } catch (error) {
       console.error("Error validando correo:", error);
       showError(
         "Error de conexión",
-        "Error al conectar con el servidor. Asegúrate de que el backend esté corriendo."
+        "Error al conectar con el servidor."
       );
     }
   };

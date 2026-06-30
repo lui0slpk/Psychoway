@@ -3,6 +3,42 @@ import * as userRepo from "../repositories/user.repository.js";
 import { ROLES, ROLE_IDS } from "../utils/constants.js";
 
 /**
+ * Valida que la fecha de nacimiento sea coherente con el tipo de documento.
+ * - CC / CE: el usuario debe tener >= 18 años.
+ * - TI: el usuario debe tener < 18 años.
+ * - PA (pasaporte) y otros: sin restricción.
+ * @param {string} docType  - Código del tipo de documento (CC, CE, TI, PA…)
+ * @param {string} birthDate - Fecha en formato YYYY-MM-DD o ISO
+ */
+export function validateAgeByDocType(docType, birthDate) {
+  if (!docType || !birthDate) return; // Si falta alguno, no bloqueamos
+
+  const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0);
+  const nacimiento = new Date(birthDate);
+
+  let edad = hoy.getFullYear() - nacimiento.getFullYear();
+  const m = hoy.getMonth() - nacimiento.getMonth();
+  if (m < 0 || (m === 0 && hoy.getDate() < nacimiento.getDate())) {
+    edad--;
+  }
+
+  if ((docType === "CC" || docType === "CE") && edad < 18) {
+    throw {
+      status: 400,
+      message: "Con Cédula de Ciudadanía o Extranjería el usuario debe tener al menos 18 años.",
+    };
+  }
+
+  if (docType === "TI" && edad >= 18) {
+    throw {
+      status: 400,
+      message: "Con Tarjeta de Identidad el usuario debe ser menor de 18 años.",
+    };
+  }
+}
+
+/**
  * Crea un nuevo usuario (desde panel de admin).
  */
 export async function create(userData) {
@@ -12,6 +48,9 @@ export async function create(userData) {
   if (!documento || !nombres || !apellidos || !correo || !password || !rol) {
     throw { status: 400, message: "Todos los campos son obligatorios" };
   }
+
+  // Validar coherencia edad ↔ tipo de documento
+  validateAgeByDocType(tipoDocumento, fechaNacimiento);
 
   const idRol = ROLE_IDS[rol.toLowerCase()] || 1;
   const hashedPassword = await bcrypt.hash(password, 10);
@@ -74,6 +113,10 @@ export async function update(id, userData) {
     userData;
 
   const idRol = ROLE_IDS[rol.toLowerCase()] || 1;
+
+  // Validar coherencia edad ↔ tipo de documento
+  validateAgeByDocType(tipoDocumento, fechaNacimiento);
+
   let updated;
 
   if (password && password.trim() !== "") {
