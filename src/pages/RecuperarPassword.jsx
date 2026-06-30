@@ -40,7 +40,7 @@ function RecuperarPassword() {
       console.error("Error validando correo:", error);
       showError(
         "Error de conexión",
-        "Error al conectar con el servidor. Asegúrate de que el backend esté corriendo."
+        "Error al conectar con el servidor."
       );
     }
   };
