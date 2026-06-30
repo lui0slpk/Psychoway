@@ -14,6 +14,7 @@ function AgendaPage() {
   const [history, setHistory] = useState([]);
   const [searchPsychologist, setSearchPsychologist] = useState("");
   const [searchDate, setSearchDate] = useState("");
+  const todayStr = new Date().toISOString().split("T")[0];
   const [availableHours, setAvailableHours] = useState([]);
   const [formData, setFormData] = useState({ dia: "", hora: "", descripcion: "" });
 
@@ -35,7 +36,21 @@ function AgendaPage() {
 
   const calculateAvailableHours = React.useCallback(() => {
     const busy = occupiedSlots.filter(s => s.day === searchDate).map(s => s.hour.substring(0, 5));
-    setAvailableHours(WORKING_HOURS.filter(h => !busy.includes(h)));
+
+    let hours = WORKING_HOURS.filter(h => !busy.includes(h));
+
+    // Si la fecha seleccionada es hoy, filtrar las horas que ya pasaron
+    const now = new Date();
+    const todayStr = now.toISOString().split("T")[0];
+    if (searchDate === todayStr) {
+      const currentMinutes = now.getHours() * 60 + now.getMinutes();
+      hours = hours.filter(h => {
+        const [hh, mm] = h.split(":").map(Number);
+        return (hh * 60 + mm) > currentMinutes;
+      });
+    }
+
+    setAvailableHours(hours);
   }, [occupiedSlots, searchDate]);
 
   useEffect(() => { fetchPsychologists(); if (user && (user.id || user.id_user)) fetchHistory(); }, [user, fetchPsychologists, fetchHistory]);
@@ -76,7 +91,7 @@ function AgendaPage() {
                 <div className="row mb-3">
                   <div className="col-md-6">
                     <label className="form-label small fw-semibold text-muted"><Calendar size={14} className="me-1" /> Día</label>
-                    <input type="date" className="form-control rounded-3 border-2 bg-light" value={formData.dia} readOnly />
+                    <input type="date" className="form-control rounded-3 border-2" value={searchDate} min={todayStr} onChange={e => setSearchDate(e.target.value)}/>
                   </div>
                   <div className="col-md-6">
                     <label className="form-label small fw-semibold text-muted"><Clock size={14} className="me-1" /> Hora</label>

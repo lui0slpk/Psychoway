@@ -8,6 +8,12 @@ export async function create(userId, professionalId, day, hour, description) {
   if (!userId || !professionalId || !day || !hour) {
     throw { status: 400, message: "Todos los campos son requeridos" };
   }
+  const now = new Date();
+  const meetingDateTime = new Date(`${day}T${hour}:00`);
+
+  if (meetingDateTime <= now) {
+    throw { status: 400, message: "No puedes agendar una cita en una fecha u hora que ya pasó." };
+  }
 
   // Verificar disponibilidad
   const taken = await meetingRepo.isSlotTaken(professionalId, day, hour);
