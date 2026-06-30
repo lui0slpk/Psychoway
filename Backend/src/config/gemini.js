@@ -24,7 +24,7 @@ try {
  * @param {number} maxRetries - Número máximo de reintentos
  * @returns {Promise<string>} Texto de respuesta
  */
-export async function generateWithRetry(prompt, maxRetries = 2) {
+export async function generateWithRetry(prompt, maxRetries = 4) {
   if (!ai) {
     return "Configuración de IA pendiente. Por favor, configura la API Key de Gemini.";
   }
@@ -32,7 +32,7 @@ export async function generateWithRetry(prompt, maxRetries = 2) {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       const response = await ai.models.generateContent({
-        model: "gemini-flash-latest",
+        model: "gemini-2.5-flash-lite",
         contents: prompt,
       });
       return response.text || "Lo siento, no pude entender tu solicitud.";
@@ -47,7 +47,9 @@ export async function generateWithRetry(prompt, maxRetries = 2) {
         msg.includes("RESOURCE_EXHAUSTED");
 
       if ((is503 || is429) && attempt < maxRetries) {
-        const delay = is429 ? 10000 : 3000;
+        // Delay progresivo: 5s, 10s, 20s para 503 / 15s, 30s, 60s para 429
+        const baseDelay = is429 ? 15000 : 5000;
+        const delay = baseDelay * attempt;
         console.log(
           `⚠️ Gemini ${is429 ? "429" : "503"} - Reintento ${attempt}/${maxRetries} en ${delay / 1000}s...`,
         );
