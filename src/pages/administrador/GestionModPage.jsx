@@ -23,9 +23,22 @@ function GestionModPage() {
       tieneMinuscula: formData.password ? /[a-z]/.test(formData.password) : true, tieneNumero: formData.password ? /[0-9]/.test(formData.password) : true,
       tieneEspecial: formData.password ? /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(formData.password) : true,
     },
+    fechaNacimiento: {
+      valida: formData.fechaNacimiento && formData.tipoDocumento ? (() => {
+        const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+        const nac = new Date(formData.fechaNacimiento);
+        let edad = hoy.getFullYear() - nac.getFullYear();
+        const m = hoy.getMonth() - nac.getMonth();
+        if (m < 0 || (m === 0 && hoy.getDate() < nac.getDate())) edad--;
+        if ((formData.tipoDocumento === "CC" || formData.tipoDocumento === "CE") && edad < 18) return false;
+        if (formData.tipoDocumento === "TI" && edad >= 18) return false;
+        return true;
+      })() : true,
+    },
   };
   const documentoValido = Object.values(validaciones.documento).every(Boolean);
   const passwordValida = Object.values(validaciones.password).every(Boolean);
+  const fechaValida = validaciones.fechaNacimiento.valida;
   const Regla = ({ ok, texto }) => (<span style={{ display: "block", fontSize: "13px", color: ok ? "#005222" : "#dc3545" }}>{ok ? "✅" : "❌"} {texto}</span>);
 
   const cV = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.5, staggerChildren: 0.1 } } };
@@ -62,8 +75,9 @@ function GestionModPage() {
   const handleChange = (e) => { let v = e.target.value; if (e.target.id === "documento") v = v.replace(/\D/g, ""); setFormData({ ...formData, [e.target.id]: v }); setTouched({ ...touched, [e.target.id]: true }); };
 
   const handleSubmit = async (e) => {
-    e.preventDefault(); setTouched({ documento: true, password: true });
+    e.preventDefault(); setTouched({ documento: true, password: true, fechaNacimiento: true });
     if (!documentoValido || (formData.password && !passwordValida)) { showWarning("Aviso", "Corrige los errores."); return; }
+    if (!fechaValida) { showError("Fecha inválida", "La fecha de nacimiento no corresponde al tipo de documento seleccionado."); return; }
     if (formData.password && formData.password !== formData.confirmPassword) { showError("Error", "Las contraseñas no coinciden"); return; }
     try {
       const r = await authFetch(`${process.env.REACT_APP_API_URL || `${process.env.REACT_APP_API_URL || "http://localhost:5000"}`}/api/users/update/${userId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(formData) });
@@ -133,7 +147,11 @@ function GestionModPage() {
                     <div className="col-md-6"><label className="form-label small fw-semibold">Nombres</label><input type="text" className="form-control rounded-3 border-2" id="nombres" value={formData.nombres} onChange={handleChange} required /></div>
                     <div className="col-md-6"><label className="form-label small fw-semibold">Apellidos</label><input type="text" className="form-control rounded-3 border-2" id="apellidos" value={formData.apellidos} onChange={handleChange} required /></div>
                   </div>
-                  <div className="mb-3"><label className="form-label small fw-semibold">Fecha de nacimiento</label><input type="date" className="form-control rounded-3 border-2" id="fechaNacimiento" value={formData.fechaNacimiento} onChange={handleChange} required /></div>
+                  <div className="mb-3"><label className="form-label small fw-semibold">Fecha de nacimiento</label><input type="date" className="form-control rounded-3 border-2" id="fechaNacimiento" value={formData.fechaNacimiento} onChange={handleChange} required />
+                    {touched.fechaNacimiento && formData.fechaNacimiento && (
+                      <div className="mt-1"><Regla ok={validaciones.fechaNacimiento.valida} texto="La edad debe corresponder al tipo de documento" /></div>
+                    )}
+                  </div>
                   <div className="mb-3"><label className="form-label small fw-semibold">Correo</label><input type="email" className="form-control rounded-3 border-2" id="correo" value={formData.correo} onChange={handleChange} required /></div>
                   <div className="mb-3"><label className="form-label small fw-semibold">Contraseña</label>
                     <div className="input-group"><input type={showPassword ? "text" : "password"} className="form-control rounded-start-3 border-2 border-end-0" id="password" placeholder="********" value={formData.password} onChange={handleChange} />
