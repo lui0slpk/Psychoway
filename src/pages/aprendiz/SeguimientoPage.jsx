@@ -101,6 +101,7 @@ function SeguimientoPage() {
 
     fetchHistorial();
     fetchObjetivos();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   // Preparar datos para Recharts

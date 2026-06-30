@@ -7,7 +7,7 @@ import env from "../config/environment.js";
  */
 export function authMiddleware(req, res, next) {
   // Rutas públicas que no requieren autenticación
-  const publicPaths = ["/api/password/forgot", "/api/password/reset"];
+  const publicPaths = ["/password/forgot", "/password/reset"];
   if (publicPaths.includes(req.path)) {
     return next();
   }

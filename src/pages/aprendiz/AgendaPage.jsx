@@ -23,15 +23,18 @@ function AgendaPage() {
 
   const fetchPsychologists = React.useCallback(async () => {
     try { const r = await authFetch("http://localhost:5000/api/psychologists"); setPsychologists(await r.json()); } catch (e) { console.error("Error:", e); }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchHistory = React.useCallback(async () => {
     if (!user) return;
     try { const r = await authFetch(`http://localhost:5000/api/meetings/user/${user.id || user.id_user}`); setHistory(await r.json()); } catch (e) { console.error("Error:", e); }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const fetchOccupiedSlots = React.useCallback(async (id) => {
     try { const r = await authFetch(`http://localhost:5000/api/meetings/psychologist/${id}`); setOccupiedSlots(await r.json()); } catch (e) { console.error("Error:", e); }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const calculateAvailableHours = React.useCallback(() => {

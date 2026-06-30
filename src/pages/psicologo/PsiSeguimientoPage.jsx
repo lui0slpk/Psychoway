@@ -59,6 +59,7 @@ function PsiSeguimientoPage() {
     fetchAprendices(); fetchAlerts();
     const intervalId = setInterval(fetchAlerts, 15000);
     return () => clearInterval(intervalId);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const markAlertAsRead = async (id_alert) => {
@@ -72,6 +73,7 @@ function PsiSeguimientoPage() {
       try { const res = await authFetch(`http://localhost:5000/api/diary/entries/${selectedUser.id}`); if (res.ok) setHistorial(await res.json()); else setHistorial([]); } catch (e) { setHistorial([]); }
     };
     fetchHistorial();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedUser]);
 
   const filteredAprendices = aprendices.filter(ap => ap.nombre.toLowerCase().includes(searchTerm.toLowerCase()) || ap.documento.includes(searchTerm));

@@ -22,11 +22,13 @@ function PsiAgendaPage() {
   const fetchHistory = React.useCallback(async () => {
     const pid = user.id || user.id_user;
     try { const r = await authFetch(`http://localhost:5000/api/meetings/professional-history/${pid}`); setHistory(await r.json()); } catch (e) { console.error("Error:", e); }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const fetchOccupiedSlots = React.useCallback(async () => {
     const pid = user.id || user.id_user;
     try { const r = await authFetch(`http://localhost:5000/api/meetings/psychologist/${pid}`); setOccupiedSlots(await r.json()); } catch (e) { console.error("Error:", e); }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   useEffect(() => { if (user && (user.id || user.id_user)) { fetchHistory(); fetchOccupiedSlots(); } }, [user, fetchHistory, fetchOccupiedSlots]);

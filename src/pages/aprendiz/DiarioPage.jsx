@@ -72,6 +72,7 @@ function DiarioPage() {
     } catch (error) {
       console.error("Error cargando objetivos:", error);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   // Cargar objetivos al montar el componente

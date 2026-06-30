@@ -24,6 +24,7 @@ function PrivacidadPage() {
       finally { setLoading(false); }
     };
     fetchPrivacy();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const handleSubmit = async (e) => {
