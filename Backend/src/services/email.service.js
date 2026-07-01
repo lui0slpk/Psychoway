@@ -5,15 +5,6 @@ import env from "../config/environment.js";
  * Transporter de email configurable via variables de entorno.
  * Por defecto usa SendGrid (smtp.sendgrid.net:587).
  */
-console.log("[EMAIL CONFIG]", {
-  host: env.EMAIL_HOST,
-  port: env.EMAIL_PORT,
-  secure: env.EMAIL_SECURE,
-  user: env.EMAIL_USER ? "✓ definido" : "✗ VACÍO",
-  pass: env.EMAIL_PASS ? "✓ definido" : "✗ VACÍO",
-  from: env.EMAIL_FROM,
-});
-
 const transporter = nodemailer.createTransport({
   host: env.EMAIL_HOST,
   port: env.EMAIL_PORT,
@@ -22,7 +13,8 @@ const transporter = nodemailer.createTransport({
     user: env.EMAIL_USER,
     pass: env.EMAIL_PASS,
   },
-  connectionTimeout: 10000,
+  connectionTimeout: 30000,   // 30s — Render tarda en conectar en frío
+  greetingTimeout: 15000,     // 15s para el handshake SMTP
 });
 
 // Verificar conexión al iniciar
