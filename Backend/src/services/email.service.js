@@ -13,6 +13,7 @@ const transporter = nodemailer.createTransport({
     user: env.EMAIL_USER,
     pass: env.EMAIL_PASS,
   },
+  connectionTimeout: 10000, // 10 segundos, no 2 minutos
 });
 
 // Verificar conexión al iniciar
