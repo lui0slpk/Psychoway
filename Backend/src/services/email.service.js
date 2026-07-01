@@ -1,10 +1,9 @@
-import { promises as dnsPromises } from "dns";
 import nodemailer from "nodemailer";
 import env from "../config/environment.js";
 
 /**
- * Transporter configurado con Gmail SMTP.
- * lookup() custom fuerza resolución IPv4 porque Render no tiene salida IPv6.
+ * Transporter de email configurable via variables de entorno.
+ * Por defecto usa SendGrid (smtp.sendgrid.net:587).
  */
 const transporter = nodemailer.createTransport({
   host: env.EMAIL_HOST,
@@ -13,12 +12,6 @@ const transporter = nodemailer.createTransport({
   auth: {
     user: env.EMAIL_USER,
     pass: env.EMAIL_PASS,
-  },
-  lookup(hostname, opts, cb) {
-    dnsPromises
-      .lookup(hostname, { ...opts, family: 4 })
-      .then(({ address, family }) => cb(null, address, family))
-      .catch(cb);
   },
 });
 
