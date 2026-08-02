@@ -1,8 +1,7 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
-import API_BASE from "../api/config";
+import React, { createContext, useContext, useState, useEffect } from "react";
+import authApi from "../api/auth.api";
 
 const AuthContext = createContext(null);
-const API_URL = API_BASE;
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -24,33 +23,29 @@ export function AuthProvider({ children }) {
 
       try {
         // Verificar token con el servidor
-        const response = await fetch(`${API_URL}/api/auth/verify`, {
-          headers: {
-            Authorization: `Bearer ${savedToken}`,
-          },
-        });
-
-        if (response.ok) {
-          // Token válido, restaurar sesión
-          setUser(JSON.parse(savedUser));
+        await authApi.verifySession();
+        // Token válido, restaurar sesión desde la caché local
+        setUser(JSON.parse(savedUser));
+      } catch (error) {
+        if (error.status === 0) {
+          // Error de conexión con el servidor, mantener sesión local
+          // pero marcar que puede no ser válida
+          console.warn("⚠️ No se pudo verificar la sesión con el servidor:", error.message);
+          // En caso de que el servidor no esté disponible,
+          // mantenemos la sesión local temporalmente
+          try {
+            setUser(JSON.parse(savedUser));
+          } catch (e) {
+            localStorage.removeItem("psychoway_token");
+            localStorage.removeItem("psychoway_user");
+          }
         } else {
-          // Token inválido o expirado, limpiar sesión
+          // Token inválido o expirado — el cliente ya limpió localStorage y
+          // redirigió a "/" en el 401; acá limpiamos el estado local.
           console.warn("⚠️ Sesión expirada o inválida. Cerrando sesión...");
           localStorage.removeItem("psychoway_token");
           localStorage.removeItem("psychoway_user");
           setUser(null);
-        }
-      } catch (error) {
-        // Error de conexión con el servidor, mantener sesión local
-        // pero marcar que puede no ser válida
-        console.warn("⚠️ No se pudo verificar la sesión con el servidor:", error.message);
-        // En caso de que el servidor no esté disponible,
-        // mantenemos la sesión local temporalmente
-        try {
-          setUser(JSON.parse(savedUser));
-        } catch (e) {
-          localStorage.removeItem("psychoway_token");
-          localStorage.removeItem("psychoway_user");
         }
       }
 
@@ -90,52 +85,6 @@ export function AuthProvider({ children }) {
     return roles.includes(user.rol);
   };
 
-  /**
-   * Fetch autenticado - automáticamente agrega el token JWT
-   * Si el token expira, cierra la sesión automáticamente
-   */
-  const authFetch = useCallback(async (url, options = {}) => {
-    const token = localStorage.getItem("psychoway_token");
-
-    if (!token) {
-      // No hay token, cerrar sesión
-      logout();
-      throw new Error("No hay sesión activa");
-    }
-
-    const headers = {
-      ...options.headers,
-      Authorization: `Bearer ${token}`,
-    };
-
-    // Agregar Content-Type si hay body y no es FormData
-    if (options.body && !(options.body instanceof FormData)) {
-      headers["Content-Type"] = headers["Content-Type"] || "application/json";
-    }
-
-    const response = await fetch(url, { ...options, headers });
-
-    // Si el servidor responde 401, la sesión expiró
-    if (response.status === 401) {
-      console.warn("⚠️ Sesión expirada. Cerrando sesión...");
-      setUser(null);
-      localStorage.removeItem("psychoway_user");
-      localStorage.removeItem("psychoway_token");
-      window.location.href = "/";
-      throw new Error("Sesión expirada");
-    }
-
-    return response;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  /**
-   * Obtener el token JWT actual
-   */
-  const getToken = () => {
-    return localStorage.getItem("psychoway_token");
-  };
-
   const value = {
     user,
     loading,
@@ -143,8 +92,6 @@ export function AuthProvider({ children }) {
     logout,
     updateUser,
     hasRole,
-    authFetch,
-    getToken,
     isAuthenticated: !!user,
   };
 
