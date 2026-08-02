@@ -138,7 +138,7 @@ function DiarioPage() {
       if (error.status === 0) {
         showError("Error de conexión", "No se pudo conectar con el servidor");
       } else {
-        showError("Error", error.data?.error || error.message);
+        showError("Error", error.data?.error || error.data?.message || "Error al registrar entrada");
       }
     } finally {
       setLoading(false);
@@ -181,7 +181,7 @@ function DiarioPage() {
       if (error.status === 0) {
         showError("Error de conexión", "No se pudo conectar con el servidor");
       } else {
-        showError("Error", error.message);
+        showError("Error", error.data?.message || "Error al crear objetivo");
       }
     } finally {
       setLoading(false);
@@ -217,7 +217,7 @@ function DiarioPage() {
       if (error.status === 0) {
         showError("Error de conexión", "No se pudo conectar con el servidor");
       } else {
-        showError("Error", error.message);
+        showError("Error", error.data?.message || "Error al actualizar objetivo");
       }
     } finally {
       setLoading(false);
@@ -256,7 +256,7 @@ function DiarioPage() {
       if (error.status === 0) {
         showError("Error de conexión", "No se pudo conectar con el servidor");
       } else {
-        showError("Error", error.message);
+        showError("Error", error.data?.message || "Error al eliminar objetivo");
       }
     } finally {
       setLoading(false);
