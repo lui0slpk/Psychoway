@@ -17,7 +17,7 @@ skinparam linetype ortho
 ' C4 Model - System Context Diagram
 ' ============================================
 
-title Psychoway - Arquitectura del Sistema v2.0
+title Psychoway - Arquitectura del Sistema
 
 ' Actores Externos
 actor "👨 Aprendiz SENA" as Student
@@ -44,17 +44,15 @@ package "Psychoway Platform" <<system>> {
     }
     
     ' ======== API GATEWAY ========
-    package "API Gateway - Express.js" <<component>> {
+    package "API Layer - Express.js" <<component>> {
         [🚪 Entry Point] as Gateway #PRIMARY_ORANGE
-        [✅ Validation] as Validation #PRIMARY_BLUE
         [🔒 Auth Middleware] as AuthMiddle #PRIMARY_BLUE
-        [🛡️ Security Layer] as Security #PRIMARY_BLUE
-        [📤 Response Handler] as ResponseHandler #PRIMARY_BLUE
+        [❌ Error Handler] as ErrorHandler #PRIMARY_BLUE
+        [✅ CORS / Config] as Config #PRIMARY_BLUE
         
         Gateway -down- AuthMiddle
-        AuthMiddle -down- Validation
-        Validation -down- Security
-        Security -down- ResponseHandler
+        AuthMiddle -down- Config
+        Config -down- ErrorHandler
     }
     
     ' ======== BUSINESS LOGIC ========
@@ -66,44 +64,40 @@ package "Psychoway Platform" <<system>> {
             [📋 Schedule Service] as SchService #PRIMARY_GREEN
             [🤖 AI Chat Service] as AIService #PRIMARY_GREEN
             [👤 User Service] as UserService #PRIMARY_GREEN
-            [⚙️ Admin Service] as AdminService #PRIMARY_GREEN
+            [📝 Diary/Objectives] as DiaryService #PRIMARY_GREEN
         }
         
         AuthService -right- EmoService
         EmoService -right- SchService
         SchService -right- AIService
         AIService -right- UserService
-        UserService -right- AdminService
+        UserService -right- DiaryService
     }
     
     ' ======== DATA LAYER ========
-    package "Data Persistence Layer" <<component>> {
+    package "Data Access Layer" <<component>> {
         
-        database "MySQL Database" as DB #PRIMARY_RED {
-            [👥 Users] as Users
-            [😔 Emotions] as Emotions
-            [📅 Appointments] as Appointments
-            [💬 Messages] as Messages
-            [🔑 Sessions] as Sessions
-            [📋 Admin Logs] as AdminLogs
+        package "Repositories" {
+            [👥 User Repository] as Users
+            [😔 Emotion Repository] as Emotions
+            [📅 Meeting Repository] as Appointments
+            [💬 Psychobot Repository] as Messages
+            [📝 Diary Repository] as Diary
         }
         
-        [🗂️ Database Adapter] as DBAdapter #PRIMARY_BLUE
+        [🗂️ Database Adapter (pg Pool)] as DBAdapter #PRIMARY_BLUE
         
         DBAdapter -down- Users
         DBAdapter -down- Emotions
         DBAdapter -down- Appointments
         DBAdapter -down- Messages
-        DBAdapter -down- Sessions
-        DBAdapter -down- AdminLogs
+        DBAdapter -down- Diary
     }
     
     ' ======== EXTERNAL SERVICES ========
     package "External Services" <<component>> {
-        [🤖 AI Provider\n(LLM API)] as AIProvider #PRIMARY_ORANGE
-        [📧 Email Service\n(SMTP)] as EmailService #PRIMARY_ORANGE
-        [📹 Video Service\n(Zoom/Teams)] as VideoService #PRIMARY_ORANGE
-        [📱 SMS Service] as SMSService #PRIMARY_ORANGE
+        [🤖 Gemini AI\n(@google/genai)] as AIProvider #PRIMARY_ORANGE
+        [📧 Nodemailer\n(SMTP)] as EmailService #PRIMARY_ORANGE
     }
 }
 
@@ -111,36 +105,32 @@ package "Psychoway Platform" <<system>> {
 
 ' Frontend a Gateway
 UIComp -right- Gateway : "HTTP/REST\nJSON/HTTPS"
-ChatUI -right- Gateway : "WebSocket\nReal-time"
 
 ' Gateway a Business Logic
-ResponseHandler -down- AuthService : "Route to\nServices"
-ResponseHandler -down- EmoService
-ResponseHandler -down- SchService
-ResponseHandler -down- AIService
-ResponseHandler -down- UserService
-ResponseHandler -down- AdminService
+ErrorHandler -down- AuthService : "Route to\nServices"
+ErrorHandler -down- EmoService
+ErrorHandler -down- SchService
+ErrorHandler -down- AIService
+ErrorHandler -down- UserService
+ErrorHandler -down- DiaryService
 
 ' Business Logic a Data Layer
-AuthService -down- DBAdapter : "SQL Queries"
+AuthService -down- DBAdapter : "SQL Queries\n(parametrizadas)"
 EmoService -down- DBAdapter
 SchService -down- DBAdapter
 AIService -down- DBAdapter
 UserService -down- DBAdapter
-AdminService -down- DBAdapter
+DiaryService -down- DBAdapter
 
 ' Business Logic a External Services
 AIService -right- AIProvider : "Chat Context"
-AuthService -right- EmailService : "Verification\nReset Link"
-SchService -right- EmailService : "Notifications"
-SchService -right- VideoService : "Create Session"
-AuthService -right- SMSService : "2FA"
+AuthService -right- EmailService : "Reset Link"
 
 ' ======== ACTORES EXTERNOS A SISTEMA ========
 
 Student -left- UIComp : "Interactúa"
 Psychologist -left- Dashboards : "Monitorea"
-Admin -right- AdminService : "Administra"
+Admin -right- AuthService : "Administra"
 
 Student -down- Gateway : "Autenticación"
 Psychologist -down- Gateway
@@ -172,80 +162,27 @@ end note
 @enduml
 
 ' ============================================
-' Componentes Detallados
-' ============================================
-
-@startuml Psychoway_Components_Detail
-!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
-!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
-!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
-
-LAYOUT_WITH_LEGEND()
-
-title Componentes Detallados - Psychoway
-
-' Sistemas Externos
-System_Ext(email, "Email Service", "Correos y Notificaciones")
-System_Ext(ai, "AI/LLM API", "Psychobot Engine")
-System_Ext(video, "Video Conference", "Zoom/Google Meet")
-
-' Sistema Principal
-System_Boundary(c1, "Psychoway") {
-    
-    Container(web, "Frontend Web", "React 19 + TS", "SPA responsiva")
-    Container(mobile, "Mobile App", "React Native", "Aplicación móvil")
-    Container(backend, "Backend API", "Express.js + Node", "API REST")
-    Container(db, "Base de Datos", "MySQL 8", "Almacenamiento principal")
-    Container(cache, "Cache", "Redis", "Sesiones y cache")
-}
-
-' Relaciones
-Rel(web, backend, "HTTP REST")
-Rel(mobile, backend, "HTTP REST + WS")
-Rel(backend, db, "SQL")
-Rel(backend, cache, "Redis Protocol")
-Rel(backend, email, "SMTP")
-Rel(backend, ai, "REST API")
-Rel(backend, video, "REST API")
-
-SHOW_LEGEND()
-
-@enduml
-
-' ============================================
-' Data Flow Diagram
+' Data Flow Diagram - Autenticación
 ' ============================================
 
 @startuml Psychoway_DataFlow
-title Flujo de Datos - Autenticación y Emoción
+title Flujo de Datos - Autenticación
 
 participant User as U
 participant "Frontend\nReact"
-participant "Express\nGateway" as Gateway
+participant "Express\nAPI" as Gateway
 participant "Auth\nService"
-participant "Emotion\nService"
-participant "MySQL\nDB"
+participant "PostgreSQL\n(Supabase)" as DB
 
 autonumber
 
 U -> "Frontend\nReact": 1. Inicia sesión
-"Frontend\nReact" -> Gateway: 2. POST /login\n{email, password}
+"Frontend\nReact" -> Gateway: 2. POST /login\n{document, password}
 Gateway -> "Auth\nService": 3. Validar credenciales
-"Auth\nService" -> "MySQL\nDB": 4. SELECT user WHERE email
-"MySQL\nDB" --> "Auth\nService": 5. User + hashedPassword
+"Auth\nService" -> DB: 4. SELECT user WHERE document
+DB --> "Auth\nService": 5. User + hashedPassword
 "Auth\nService" --> Gateway: 6. JWT Token
 Gateway --> "Frontend\nReact": 7. {token, user}
 "Frontend\nReact" --> U: 8. Sesión iniciada
-
-autonumber 9
-
-U -> "Frontend\nReact": 9. Registra emoción
-"Frontend\nReact" -> Gateway: 10. POST /emotions\n{emotion, intensity, notes}\nHeader: JWT
-Gateway -> "Emotion\nService": 11. Create emotion record
-"Emotion\nService" -> "MySQL\nDB": 12. INSERT emotion
-"MySQL\nDB" --> "Emotion\nService": 13. Success
-"Emotion\nService" --> Gateway: 14. {emotion_id, created}
-Gateway --> "Frontend\nReact": 15. Success response
-"Frontend\nReact" --> U: 16. Emoción guardada ✓
 
 @enduml
