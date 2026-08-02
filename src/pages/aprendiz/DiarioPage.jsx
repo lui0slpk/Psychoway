@@ -14,9 +14,11 @@ import {
   CheckCircle,
 } from "lucide-react";
 import { showSuccess, showError, showWarning, showConfirm } from "../../utils/alerts";
+import diaryApi from "../../api/diary.api";
+import objectivesApi from "../../api/objectives.api";
 
 function DiarioPage() {
-  const { user, authFetch } = useAuth();
+  const { user } = useAuth();
   const [selectedEmotion, setSelectedEmotion] = useState(null);
   const [diarioTexto, setDiarioTexto] = useState("");
   const [showUpdateForm, setShowUpdateForm] = useState(false);
@@ -62,13 +64,7 @@ function DiarioPage() {
     const userId = user?.id || user?.id_user;
     if (!userId) return;
     try {
-      const response = await authFetch(
-        `${process.env.REACT_APP_API_URL || `${process.env.REACT_APP_API_URL || "http://localhost:5000"}`}/api/objectives/${userId}`,
-      );
-      if (response.ok) {
-        const data = await response.json();
-        setObjetivos(data);
-      }
+      setObjetivos(await objectivesApi.getByUser(userId));
     } catch (error) {
       console.error("Error cargando objetivos:", error);
     }
@@ -132,31 +128,18 @@ function DiarioPage() {
 
     setLoading(true);
     try {
-      const response = await authFetch(`${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/diary/entry`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId: userId,
-          emotionIndex: selectedEmotion,
-          description: diarioTexto.trim(),
-        }),
-      });
+      await diaryApi.createEntry(userId, selectedEmotion, diarioTexto.trim());
 
-      const data = await response.json();
-
-      if (response.ok) {
-        showSuccess("¡Registrado!", "¡Entrada de diario registrada correctamente!");
-        setSelectedEmotion(null);
-        setDiarioTexto("");
-      } else {
-        showError(
-          "Error",
-          data.error || data.message || "Error al registrar entrada"
-        );
-      }
+      showSuccess("¡Registrado!", "¡Entrada de diario registrada correctamente!");
+      setSelectedEmotion(null);
+      setDiarioTexto("");
     } catch (error) {
       console.error("Error:", error);
-      showError("Error de conexión", "No se pudo conectar con el servidor");
+      if (error.status === 0) {
+        showError("Error de conexión", "No se pudo conectar con el servidor");
+      } else {
+        showError("Error", error.data?.error || error.data?.message || "Error al registrar entrada");
+      }
     } finally {
       setLoading(false);
     }
@@ -179,33 +162,27 @@ function DiarioPage() {
 
     setLoading(true);
     try {
-      const response = await authFetch(`${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/objectives`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId: userId,
-          nombre: objetivo.nombre,
-          descripcion: objetivo.descripcion,
-          estado: objetivo.estado,
-        }),
+      await objectivesApi.create(
+        userId,
+        objetivo.nombre,
+        objetivo.descripcion,
+        objetivo.estado,
+      );
+
+      showSuccess("¡Creado!", "¡Objetivo creado correctamente!");
+      setObjetivo({
+        nombre: "",
+        descripcion: "",
+        estado: "Pendiente",
       });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        showSuccess("¡Creado!", "¡Objetivo creado correctamente!");
-        setObjetivo({
-          nombre: "",
-          descripcion: "",
-          estado: "Pendiente",
-        });
-        fetchObjetivos();
-      } else {
-        showError("Error", data.message || "Error al crear objetivo");
-      }
+      fetchObjetivos();
     } catch (error) {
       console.error("Error:", error);
-      showError("Error de conexión", "No se pudo conectar con el servidor");
+      if (error.status === 0) {
+        showError("Error de conexión", "No se pudo conectar con el servidor");
+      } else {
+        showError("Error", error.data?.message || "Error al crear objetivo");
+      }
     } finally {
       setLoading(false);
     }
@@ -219,37 +196,29 @@ function DiarioPage() {
 
     setLoading(true);
     try {
-      const response = await authFetch(
-        `${process.env.REACT_APP_API_URL || `${process.env.REACT_APP_API_URL || "http://localhost:5000"}`}/api/objectives/${objetivoActualizar.seleccionado}`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            nombre: objetivoActualizar.nombre,
-            descripcion: objetivoActualizar.descripcion,
-            estado: objetivoActualizar.estado,
-          }),
-        },
+      await objectivesApi.update(
+        objetivoActualizar.seleccionado,
+        objetivoActualizar.nombre,
+        objetivoActualizar.descripcion,
+        objetivoActualizar.estado,
       );
 
-      const data = await response.json();
-
-      if (response.ok) {
-        showSuccess("¡Actualizado!", "¡Objetivo actualizado correctamente!");
-        setShowUpdateForm(false);
-        setObjetivoActualizar({
-          seleccionado: "",
-          nombre: "",
-          descripcion: "",
-          estado: "Pendiente",
-        });
-        fetchObjetivos();
-      } else {
-        showError("Error", data.message || "Error al actualizar objetivo");
-      }
+      showSuccess("¡Actualizado!", "¡Objetivo actualizado correctamente!");
+      setShowUpdateForm(false);
+      setObjetivoActualizar({
+        seleccionado: "",
+        nombre: "",
+        descripcion: "",
+        estado: "Pendiente",
+      });
+      fetchObjetivos();
     } catch (error) {
       console.error("Error:", error);
-      showError("Error de conexión", "No se pudo conectar con el servidor");
+      if (error.status === 0) {
+        showError("Error de conexión", "No se pudo conectar con el servidor");
+      } else {
+        showError("Error", error.data?.message || "Error al actualizar objetivo");
+      }
     } finally {
       setLoading(false);
     }
@@ -271,31 +240,24 @@ function DiarioPage() {
 
     setLoading(true);
     try {
-      const response = await authFetch(
-        `${process.env.REACT_APP_API_URL || `${process.env.REACT_APP_API_URL || "http://localhost:5000"}`}/api/objectives/${objetivoActualizar.seleccionado}`,
-        {
-          method: "DELETE",
-        },
-      );
+      await objectivesApi.remove(objetivoActualizar.seleccionado);
 
-      const data = await response.json();
-
-      if (response.ok) {
-        showSuccess("¡Eliminado!", "¡Objetivo eliminado correctamente!");
-        setShowUpdateForm(false);
-        setObjetivoActualizar({
-          seleccionado: "",
-          nombre: "",
-          descripcion: "",
-          estado: "Pendiente",
-        });
-        fetchObjetivos();
-      } else {
-        showError("Error", data.message || "Error al eliminar objetivo");
-      }
+      showSuccess("¡Eliminado!", "¡Objetivo eliminado correctamente!");
+      setShowUpdateForm(false);
+      setObjetivoActualizar({
+        seleccionado: "",
+        nombre: "",
+        descripcion: "",
+        estado: "Pendiente",
+      });
+      fetchObjetivos();
     } catch (error) {
       console.error("Error:", error);
-      showError("Error de conexión", "No se pudo conectar con el servidor");
+      if (error.status === 0) {
+        showError("Error de conexión", "No se pudo conectar con el servidor");
+      } else {
+        showError("Error", error.data?.message || "Error al eliminar objetivo");
+      }
     } finally {
       setLoading(false);
     }

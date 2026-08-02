@@ -1,27 +1,29 @@
 import { API_URL } from "./config";
+import { request } from "./client";
 
 /**
- * Servicio de Agenda — centraliza llamadas al backend.
+ * Servicio de Agenda — centraliza llamadas al backend sobre el cliente HTTP
+ * compartido (Bearer automático + redirect 401). Sin parámetro authFetch.
+ * Paridad: Backend/src/routes/meetings.routes.js
+ * (POST /meetings, GET /meetings/psychologist/:id, GET /meetings/user/:id,
+ * GET /meetings/professional-history/:id).
+ * Nota: la lista de psicólogos vive en psychologists.api.js (getAll), no aquí.
  */
 const meetingsApi = {
-  create: (authFetch, payload) =>
-    authFetch(`${API_URL}/meetings`, {
+  create: (payload) =>
+    request(`${API_URL}/meetings`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     }),
 
-  getByProfessional: (authFetch, id) =>
-    authFetch(`${API_URL}/meetings/psychologist/${id}`),
+  getByProfessional: (id) =>
+    request(`${API_URL}/meetings/psychologist/${id}`),
 
-  getByUser: (authFetch, userId) =>
-    authFetch(`${API_URL}/meetings/user/${userId}`),
+  getByUser: (userId) =>
+    request(`${API_URL}/meetings/user/${userId}`),
 
-  getProfessionalHistory: (authFetch, id) =>
-    authFetch(`${API_URL}/meetings/professional-history/${id}`),
-
-  getPsychologists: (authFetch) =>
-    authFetch(`${API_URL}/psychologists`),
+  getProfessionalHistory: (id) =>
+    request(`${API_URL}/meetings/professional-history/${id}`),
 };
 
 export default meetingsApi;

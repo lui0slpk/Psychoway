@@ -26,9 +26,11 @@ import {
   Frown,
   TrendingUp,
 } from "lucide-react";
+import diaryApi from "../../api/diary.api";
+import objectivesApi from "../../api/objectives.api";
 
 function SeguimientoPage() {
-  const { user, authFetch } = useAuth();
+  const { user } = useAuth();
   const [historial, setHistorial] = useState([]);
   const [objetivos, setObjetivos] = useState([]);
   const [pagEmoc, setPagEmoc] = useState(1);
@@ -79,10 +81,7 @@ function SeguimientoPage() {
 
     const fetchHistorial = async () => {
       try {
-        const res = await authFetch(
-          `${process.env.REACT_APP_API_URL || `${process.env.REACT_APP_API_URL || "http://localhost:5000"}`}/api/diary/entries/${userId}`,
-        );
-        if (res.ok) setHistorial(await res.json());
+        setHistorial(await diaryApi.getEntries(userId));
       } catch (e) {
         console.error("Error historial:", e);
       }
@@ -90,10 +89,7 @@ function SeguimientoPage() {
 
     const fetchObjetivos = async () => {
       try {
-        const res = await authFetch(
-          `${process.env.REACT_APP_API_URL || `${process.env.REACT_APP_API_URL || "http://localhost:5000"}`}/api/objectives/${userId}`,
-        );
-        if (res.ok) setObjetivos(await res.json());
+        setObjetivos(await objectivesApi.getByUser(userId));
       } catch (e) {
         console.error("Error objetivos:", e);
       }

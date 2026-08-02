@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import authApi from "../api/auth.api";
 import logo_sena from "../assets/img/img_sena.png";
 
 function Inicio() {
@@ -46,30 +47,12 @@ function Inicio() {
     try {
       console.log("Enviando datos:", form);
 
-      const response = await fetch(`${process.env.REACT_APP_API_URL || "http://localhost:5000"}/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          document: form.documento,
-          password: form.password,
-        }),
-      });
+      const data = await authApi.login(form.documento, form.password);
 
-      console.log("Status:", response.status);
-
-      const text = await response.text();
-      console.log("Respuesta cruda del servidor:", text);
-
-      let data;
-      try {
-        data = JSON.parse(text);
-      } catch {
+      // Paridad: si el cuerpo no es JSON el cliente devuelve texto crudo;
+      // la página conserva el mensaje de parseo fallido de la versión inline.
+      if (typeof data !== "object" || data === null) {
         mostrarError("Error de comunicación con el servidor.");
-        return;
-      }
-
-      if (!response.ok) {
-        mostrarError(data.message || "Documento o contraseña incorrectos.");
         return;
       }
 
@@ -92,8 +75,14 @@ function Inicio() {
         navigate(destination);
       }, 1500);
     } catch (error) {
-      console.error("Error en fetch:", error);
-      mostrarError("No se pudo conectar con el servidor.");
+      console.error("Error en login:", error);
+      if (error && error.status === 0) {
+        mostrarError("No se pudo conectar con el servidor.");
+      } else {
+        mostrarError(
+          (error && error.message) || "Documento o contraseña incorrectos.",
+        );
+      }
     }
   };
 
