@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import notificationsApi from "../api/notifications.api";
@@ -16,6 +16,14 @@ function Navbar({ pageTitle, pageSubtitle }) {
   const [notifications, setNotifications] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
 
+  const fetchNotifications = useCallback(async () => {
+    try {
+      setNotifications(await notificationsApi.getByUser(user.id_user));
+    } catch (e) {
+      console.error(e);
+    }
+  }, [user]);
+
   useEffect(() => {
     if (user?.rol === "aprendiz" && user?.id_user) {
       // 1. Disparar el check-in proactivo
@@ -24,15 +32,7 @@ function Navbar({ pageTitle, pageSubtitle }) {
         fetchNotifications();
       }).catch(e => console.error(e));
     }
-  }, [user]);
-
-  const fetchNotifications = async () => {
-    try {
-      setNotifications(await notificationsApi.getByUser(user.id_user));
-    } catch (e) {
-      console.error(e);
-    }
-  };
+  }, [user, fetchNotifications]);
 
   const handleReadNotification = async (notif) => {
     try {
