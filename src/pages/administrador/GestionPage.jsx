@@ -3,12 +3,10 @@ import { Link } from "react-router-dom";
 import MainLayout from "../../layouts/MainLayout";
 import { motion } from "framer-motion";
 import { UserPlus, Edit3, Eye, EyeOff } from "lucide-react";
-import { useAuth } from "../../context/AuthContext";
+import usersApi from "../../api/users.api";
 import { showSuccess, showError, showWarning } from "../../utils/alerts";
 
 function GestionPage() {
-  const { authFetch } = useAuth();
-
   const [showPassword, setShowPassword] = useState(false);
   const [touched, setTouched] = useState({});
   const [formData, setFormData] = useState({ rol: "", documento: "", tipoDocumento: "", nombres: "", apellidos: "", fechaNacimiento: "", correo: "", password: "" });
@@ -59,15 +57,16 @@ function GestionPage() {
       return;
     }
     try {
-      const response = await authFetch(`${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/users/create`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(formData) });
-      const data = await response.json();
-      if (response.ok) {
-        showSuccess("¡Registro Exitoso!", "El usuario ha sido creado correctamente.");
-        setFormData({ rol: "", documento: "", tipoDocumento: "", nombres: "", apellidos: "", fechaNacimiento: "", correo: "", password: "" }); setTouched({});
-      } else showError("Error", data.message || "Error al crear usuario");
+      await usersApi.create(formData);
+      showSuccess("¡Registro Exitoso!", "El usuario ha sido creado correctamente.");
+      setFormData({ rol: "", documento: "", tipoDocumento: "", nombres: "", apellidos: "", fechaNacimiento: "", correo: "", password: "" }); setTouched({});
     } catch (error) {
-      console.error("Error:", error);
-      showError("Error de conexión", "Error al conectar con el servidor.");
+      if (error.status) {
+        showError("Error", error.data?.message || "Error al crear usuario");
+      } else {
+        console.error("Error:", error);
+        showError("Error de conexión", "Error al conectar con el servidor.");
+      }
     }
   };
 
