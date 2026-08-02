@@ -2,14 +2,13 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import MainLayout from "../../layouts/MainLayout";
 import { useAuth } from "../../context/AuthContext";
+import usersApi from "../../api/users.api";
 import { motion } from "framer-motion";
 import { User, FileText, Lock, Eye, EyeOff, Save, Trash2, Camera, Upload, X } from "lucide-react";
 import { showError, showSuccess, showConfirm, showPrompt } from "../../utils/alerts";
 
-const API_URL = `${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api`;
-
 function MiCuentaPsiPage() {
-  const { user, authFetch, logout, updateUser } = useAuth();
+  const { user, logout, updateUser } = useAuth();
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
 
@@ -33,22 +32,19 @@ function MiCuentaPsiPage() {
     if (!user) return;
     const fetchProfile = async () => {
       try {
-        const res = await authFetch(`${API_URL}/users/profile/${user.id || user.id_user}`);
-        if (res.ok) {
-          const data = await res.json();
-          setFormData({
-            documento: data.document || "",
-            tipoDocumento: data.tipoDocumento || "",
-            nombres: data.nombres || "",
-            apellidos: data.apellidos || "",
-            fechaNacimiento: data.fechaNacimiento || "",
-            correo: data.correo || "",
-            password: "",
-            confirmPassword: "",
-          });
-          if (data.profile_photo) {
-            setPhotoPreview(data.profile_photo);
-          }
+        const data = await usersApi.getProfile(user.id || user.id_user);
+        setFormData({
+          documento: data.document || "",
+          tipoDocumento: data.tipoDocumento || "",
+          nombres: data.nombres || "",
+          apellidos: data.apellidos || "",
+          fechaNacimiento: data.fechaNacimiento || "",
+          correo: data.correo || "",
+          password: "",
+          confirmPassword: "",
+        });
+        if (data.profile_photo) {
+          setPhotoPreview(data.profile_photo);
         }
       } catch (error) {
         console.error("Error al cargar perfil:", error);
@@ -154,27 +150,17 @@ function MiCuentaPsiPage() {
         bodyData.profilePhoto = profilePhoto;
       }
 
-      const res = await authFetch(`${API_URL}/users/profile/${userId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(bodyData),
-      });
+      const data = await usersApi.updateProfile(userId, bodyData);
 
-      if (res.ok) {
-        const data = await res.json();
-        // Actualizar el contexto con los nuevos datos
-        if (data.user) {
-          updateUser(data.user);
-        }
-        // Limpiar passwords
-        setFormData(prev => ({ ...prev, password: "", confirmPassword: "" }));
-        setProfilePhoto(null);
-
-        showSuccess("¡Guardado!", "Tu perfil ha sido actualizado correctamente.");
-      } else {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.message || "Error al actualizar");
+      // Actualizar el contexto con los nuevos datos
+      if (data.user) {
+        updateUser(data.user);
       }
+      // Limpiar passwords
+      setFormData(prev => ({ ...prev, password: "", confirmPassword: "" }));
+      setProfilePhoto(null);
+
+      showSuccess("¡Guardado!", "Tu perfil ha sido actualizado correctamente.");
     } catch (error) {
       console.error("Error al guardar:", error);
       showError("Error", error.message || "No se pudo actualizar el perfil. Intenta de nuevo.");
@@ -209,16 +195,11 @@ function MiCuentaPsiPage() {
       if (confirm2.isConfirmed) {
         try {
           const userId = user.id || user.id_user;
-          const res = await authFetch(`${API_URL}/users/delete/${userId}`, { method: "DELETE" });
+          await usersApi.remove(userId);
 
-          if (res.ok) {
-            await showSuccess("Cuenta eliminada", "Tu cuenta ha sido eliminada. Serás redirigido al inicio.", { timer: 2500 });
-            logout();
-            navigate("/");
-          } else {
-            const errData = await res.json().catch(() => ({}));
-            throw new Error(errData.message || "No se pudo eliminar la cuenta");
-          }
+          await showSuccess("Cuenta eliminada", "Tu cuenta ha sido eliminada. Serás redirigido al inicio.", { timer: 2500 });
+          logout();
+          navigate("/");
         } catch (error) {
           console.error("Error al eliminar:", error);
           showError("Error", error.message || "No se pudo eliminar la cuenta. Intenta de nuevo.");

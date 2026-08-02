@@ -3,11 +3,10 @@ import { Link } from "react-router-dom";
 import MainLayout from "../../layouts/MainLayout";
 import { motion } from "framer-motion";
 import { UserPlus, Edit3, Search, Eye, EyeOff, Save, Trash2 } from "lucide-react";
-import { useAuth } from "../../context/AuthContext";
+import usersApi from "../../api/users.api";
 import { showSuccess, showError, showWarning, showConfirm } from "../../utils/alerts";
 
 function GestionModPage() {
-  const { authFetch } = useAuth();
   const [buscarDocumento, setBuscarDocumento] = useState("");
   const [usuarioEncontrado, setUsuarioEncontrado] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -47,28 +46,28 @@ function GestionModPage() {
   const handleBuscar = async () => {
     if (!buscarDocumento) { showWarning("Aviso", "Por favor ingrese un número de documento"); return; }
     try {
-      const response = await authFetch(`${process.env.REACT_APP_API_URL || `${process.env.REACT_APP_API_URL || "http://localhost:5000"}`}/api/users/search/${buscarDocumento}`);
-      if (!response.ok) {
-        if (response.status === 404) {
-          const ct = response.headers.get("content-type");
-          if (ct && ct.indexOf("application/json") !== -1) {
-            const d = await response.json();
-            showError("Aviso", d.message || "Usuario no encontrado");
-          } else {
-            showError("Aviso", "Error 404: El servicio no responde. Reinicia el backend.");
-          }
-        } else {
-          showError("Error", `Error del servidor: ${response.status}`);
-        }
-        setUsuarioEncontrado(false); setUserId(null); return;
-      }
-      const data = await response.json();
+      const data = await usersApi.search(buscarDocumento);
       setUsuarioEncontrado(true); setUserId(data.id_user);
       showSuccess("¡Usuario Encontrado!", "Datos cargados.");
       setFormData({ rol: data.rol || "", documento: data.document || "", tipoDocumento: data.tipoDocumento || "", nombres: data.nombres || "", apellidos: data.apellidos || "", fechaNacimiento: data.fechaNacimiento || "", correo: data.correo || "", password: "", confirmPassword: "" });
     } catch (error) {
-      console.error("Error:", error);
-      showError("Error de conexión", "Error de conexión con el backend.");
+      if (error.status === 404) {
+        // Paridad del caso especial: el 404 puede venir con cuerpo JSON (backend,
+        // "Usuario no encontrado") o no JSON (servicio caído). El cliente parsea
+        // JSON → objeto; HTML/texto → string crudo. Mismas cadenas visibles que antes.
+        if (error.data && typeof error.data === "object") {
+          showError("Aviso", error.data.message || "Usuario no encontrado");
+        } else {
+          showError("Aviso", "Error 404: El servicio no responde. Reinicia el backend.");
+        }
+        setUsuarioEncontrado(false); setUserId(null);
+      } else if (error.status) {
+        showError("Error", `Error del servidor: ${error.status}`);
+        setUsuarioEncontrado(false); setUserId(null);
+      } else {
+        console.error("Error:", error);
+        showError("Error de conexión", "Error de conexión con el backend.");
+      }
     }
   };
 
@@ -80,24 +79,26 @@ function GestionModPage() {
     if (!fechaValida) { showError("Fecha inválida", "La fecha de nacimiento no corresponde al tipo de documento seleccionado."); return; }
     if (formData.password && formData.password !== formData.confirmPassword) { showError("Error", "Las contraseñas no coinciden"); return; }
     try {
-      const r = await authFetch(`${process.env.REACT_APP_API_URL || `${process.env.REACT_APP_API_URL || "http://localhost:5000"}`}/api/users/update/${userId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(formData) });
-      const data = await r.json();
-      if (r.ok) {
-        showSuccess("¡Usuario Actualizado!", "Datos actualizados.");
-        setUsuarioEncontrado(false); setBuscarDocumento("");
-      } else showError("Error", `Error: ${data.message}`);
-    } catch (e) { console.error("Error:", e); showError("Error de conexión", "Error al conectar con el servidor"); }
+      await usersApi.update(userId, formData);
+      showSuccess("¡Usuario Actualizado!", "Datos actualizados.");
+      setUsuarioEncontrado(false); setBuscarDocumento("");
+    } catch (e) {
+      if (e.status) {
+        showError("Error", `Error: ${e.data?.message}`);
+      } else { console.error("Error:", e); showError("Error de conexión", "Error al conectar con el servidor"); }
+    }
   };
 
   const executeDelete = async () => {
     try {
-      const r = await authFetch(`${process.env.REACT_APP_API_URL || `${process.env.REACT_APP_API_URL || "http://localhost:5000"}`}/api/users/delete/${userId}`, { method: "DELETE" });
-      const data = await r.json();
-      if (r.ok) {
-        showSuccess("¡Usuario Eliminado!", "Cuenta eliminada.");
-        setUsuarioEncontrado(false); setBuscarDocumento(""); setUserId(null);
-      } else showError("Error", `Error: ${data.message}`);
-    } catch (e) { console.error("Error:", e); showError("Error de conexión", "Error al conectar"); }
+      await usersApi.remove(userId);
+      showSuccess("¡Usuario Eliminado!", "Cuenta eliminada.");
+      setUsuarioEncontrado(false); setBuscarDocumento(""); setUserId(null);
+    } catch (e) {
+      if (e.status) {
+        showError("Error", `Error: ${e.data?.message}`);
+      } else { console.error("Error:", e); showError("Error de conexión", "Error al conectar"); }
+    }
   };
 
   const handleDeleteClick = async () => {

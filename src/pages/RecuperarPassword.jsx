@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import logo_sena from "../assets/img/img_sena.png";
 import { showSuccess, showError } from "../utils/alerts";
+import authApi from "../api/auth.api";
 
 function RecuperarPassword() {
   const navigate = useNavigate();
@@ -11,37 +12,29 @@ function RecuperarPassword() {
     e.preventDefault();
 
     try {
-      const response = await fetch(
-        `${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/password/forgot`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ correo }),
-        },
+      await authApi.forgotPassword(correo);
+
+      showSuccess(
+        "¡Envío Exitoso!",
+        "Te hemos enviado un enlace para restablecer tu contraseña."
       );
-
-      const data = await response.json();
-
-      if (response.ok) {
-        showSuccess(
-          "¡Envío Exitoso!",
-          "Te hemos enviado un enlace para restablecer tu contraseña."
+      setTimeout(() => {
+        navigate("/");
+      }, 2000);
+    } catch (error) {
+      console.error("Error validando correo:", error);
+      if (error && error.status === 0) {
+        showError(
+          "Error de conexión",
+          "Error al conectar con el servidor."
         );
-        setTimeout(() => {
-          navigate("/");
-        }, 2000);
       } else {
         showError(
           "Error",
-          data.message || "El correo ingresado no se encuentra registrado en nuestra base de datos."
+          (error && error.message) ||
+            "El correo ingresado no se encuentra registrado en nuestra base de datos."
         );
       }
-    } catch (error) {
-      console.error("Error validando correo:", error);
-      showError(
-        "Error de conexión",
-        "Error al conectar con el servidor."
-      );
     }
   };
 

@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import MainLayout from "../../layouts/MainLayout";
+import usersApi from "../../api/users.api";
 import { useAuth } from "../../context/AuthContext";
 import { motion } from "framer-motion";
 import { User, Shield, Eye, Save } from "lucide-react";
 import { showSuccess, showError } from "../../utils/alerts";
 
 function PrivacidadPage() {
-  const { user, authFetch } = useAuth();
+  const { user } = useAuth();
   const [visibilidad, setVisibilidad] = useState("yo-psicologo");
   const [loading, setLoading] = useState(true);
 
@@ -18,8 +19,8 @@ function PrivacidadPage() {
     if (!user) return;
     const fetchPrivacy = async () => {
       try {
-        const res = await authFetch(`${process.env.REACT_APP_API_URL || `${process.env.REACT_APP_API_URL || "http://localhost:5000"}`}/api/users/privacy/${user.id}`);
-        if (res.ok) { const data = await res.json(); setVisibilidad(data.diary_visibility); }
+        const data = await usersApi.getPrivacy(user.id);
+        setVisibilidad(data.diary_visibility);
       } catch (error) { console.error("Error al cargar privacidad:", error); }
       finally { setLoading(false); }
     };
@@ -29,12 +30,8 @@ function PrivacidadPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await authFetch(`${process.env.REACT_APP_API_URL || `${process.env.REACT_APP_API_URL || "http://localhost:5000"}`}/api/users/privacy/${user.id}`, {
-        method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ visibilidad }),
-      });
-      if (res.ok) {
-        showSuccess("¡Guardado!", "Tu configuración de privacidad ha sido actualizada.");
-      } else throw new Error("Error en la respuesta del servidor");
+      await usersApi.updatePrivacy(user.id, visibilidad);
+      showSuccess("¡Guardado!", "Tu configuración de privacidad ha sido actualizada.");
     } catch (error) {
       console.error("Error al guardar privacidad:", error);
       showError("Error", "No se pudo guardar la configuración. Intenta de nuevo.");

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { showSuccess, showError, showWarning } from "../utils/alerts";
+import authApi from "../api/auth.api";
 
 function Registro() {
   const navigate = useNavigate();
@@ -136,33 +137,26 @@ function Registro() {
     };
 
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL || "http://localhost:5000"}/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(userData),
-      });
+      const data = await authApi.register(userData);
 
-      const data = await response.json();
-      if (response.ok) {
-        console.log(data);
-        showSuccess("¡Registro Exitoso!", "Tu cuenta ha sido creada correctamente.");
-        // Redirigir después de 2 segundos
-        setTimeout(() => {
-          navigate("/");
-        }, 2000);
-      } else {
-        if (response.status === 409) {
-          showError(
-            "Usuario ya registrado",
-            "El documento o correo electrónico que intentas registrar ya existe."
-          );
-        } else {
-          showError("Error", "❌ Error al registrar usuario");
-        }
-      }
+      console.log(data);
+      showSuccess("¡Registro Exitoso!", "Tu cuenta ha sido creada correctamente.");
+      // Redirigir después de 2 segundos
+      setTimeout(() => {
+        navigate("/");
+      }, 2000);
     } catch (error) {
       console.error("Error en la solicitud:", error);
-      showError("Error de conexión", "Error al conectar con el servidor");
+      if (error && error.status === 409) {
+        showError(
+          "Usuario ya registrado",
+          "El documento o correo electrónico que intentas registrar ya existe."
+        );
+      } else if (error && error.status === 0) {
+        showError("Error de conexión", "Error al conectar con el servidor");
+      } else {
+        showError("Error", "❌ Error al registrar usuario");
+      }
     }
   };
 
