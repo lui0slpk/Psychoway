@@ -1,4 +1,5 @@
 import * as diaryService from "../services/diary.service.js";
+import { assertOwnProfile } from "../middlewares/auth.middleware.js";
 
 export async function createEntry(req, res, next) {
   try {
@@ -21,6 +22,7 @@ export async function getEntries(req, res, next) {
 
 export async function getPrivacy(req, res, next) {
   try {
+    assertOwnProfile(req, req.params.userId);
     const result = await diaryService.getPrivacy(req.params.userId);
     res.status(200).json(result);
   } catch (error) {
@@ -30,6 +32,7 @@ export async function getPrivacy(req, res, next) {
 
 export async function updatePrivacy(req, res, next) {
   try {
+    assertOwnProfile(req, req.params.userId);
     const result = await diaryService.updatePrivacy(req.params.userId, req.body.visibilidad);
     res.status(200).json(result);
   } catch (error) {
