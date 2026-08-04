@@ -1,55 +1,83 @@
 -- ============================================================
--- PSYCHOWAY - Schema para Supabase (PostgreSQL)
+-- PSYCHOWAY — SCHEMA CANÓNICO ÚNICO PARA SUPABASE (POSTGRESQL)
 -- Ejecutar en: Supabase Dashboard → SQL Editor → New query
+--
+-- Este script es IDEMPOTENTE: se puede ejecutar varias veces sobre
+-- una base nueva o existente sin romperla.
+--   • CREATE TABLE IF NOT EXISTS para las 12 tablas activas.
+--   • Bloques DO $$ que verifican pg_constraint antes de agregar
+--     UNIQUE y FKs con ON DELETE CASCADE (re-ejecutables).
+--   • Datos semilla con ON CONFLICT DO NOTHING + setval de secuencias.
+--   • RLS deshabilitado (el backend usa Service Role Key que omite RLS).
 -- ============================================================
 
 -- 1. Tabla de roles
 CREATE TABLE IF NOT EXISTS rol (
-  id_rol    SERIAL PRIMARY KEY,
-  nombre_rol VARCHAR(45) DEFAULT NULL
+  id_rol      SERIAL PRIMARY KEY,
+  nombre_rol  VARCHAR(45) DEFAULT NULL
 );
 
 -- 2. Tabla de usuarios
+--    email y document NO llevan UNIQUE inline: se agregan al final de
+--    forma idempotente (no debe romper sobre una BD con datos duplicados).
 CREATE TABLE IF NOT EXISTS users (
-  id_user        SERIAL PRIMARY KEY,
-  document       VARCHAR(15)  NOT NULL,
-  doc_type       VARCHAR(45)  NOT NULL,
-  names          VARCHAR(45)  NOT NULL,
-  last_names     VARCHAR(45)  NOT NULL,
-  birth_date     DATE         NOT NULL,
-  email          VARCHAR(100) NOT NULL,
-  password       VARCHAR(255) NOT NULL,
-  id_rol         INT          NOT NULL REFERENCES rol(id_rol),
-  profile_photo  TEXT         DEFAULT NULL,
-  reset_token         VARCHAR(255) DEFAULT NULL,
-  reset_token_expires TIMESTAMP    DEFAULT NULL,
-  last_update    TIMESTAMP    DEFAULT NOW()
+  id_user             SERIAL PRIMARY KEY,
+  document            VARCHAR(15)  NOT NULL,
+  doc_type            VARCHAR(45)  NOT NULL,
+  names               VARCHAR(45)  NOT NULL,
+  last_names          VARCHAR(45)  NOT NULL,
+  birth_date          DATE,
+  email               VARCHAR(100) NOT NULL,
+  password            VARCHAR(255) NOT NULL,
+  id_rol              INT          NOT NULL REFERENCES rol(id_rol),
+  profile_photo       TEXT,
+  reset_token         VARCHAR(255),
+  reset_token_expires TIMESTAMP,
+  last_update         TIMESTAMP DEFAULT NOW()
 );
 
--- 3. Tabla agenda
-CREATE TABLE IF NOT EXISTS agenda (
-  id_agenda   SERIAL PRIMARY KEY,
-  id_user     INT DEFAULT NULL REFERENCES users(id_user),
-  last_update TIMESTAMP DEFAULT NOW()
-);
+-- UNIQUE idempotente para users.email.
+-- Si existen correos duplicados, avisa con RAISE NOTICE y omite la constraint.
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'users_email_key' AND conrelid = 'users'::regclass
+  ) THEN
+    IF EXISTS (SELECT 1 FROM users GROUP BY email HAVING COUNT(*) > 1) THEN
+      RAISE NOTICE 'Se omitió users_email_key: existen correos duplicados en users.';
+    ELSE
+      ALTER TABLE users ADD CONSTRAINT users_email_key UNIQUE (email);
+    END IF;
+  END IF;
+END $$;
 
--- 4. Tabla chatbot
-CREATE TABLE IF NOT EXISTS chatbot (
-  id_chatbot  SERIAL PRIMARY KEY,
-  id_user     INT DEFAULT NULL REFERENCES users(id_user),
-  last_update TIMESTAMP DEFAULT NOW()
-);
+-- UNIQUE idempotente para users.document.
+-- Si existen documentos duplicados, avisa con RAISE NOTICE y omite la constraint.
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'users_document_key' AND conrelid = 'users'::regclass
+  ) THEN
+    IF EXISTS (SELECT 1 FROM users GROUP BY document HAVING COUNT(*) > 1) THEN
+      RAISE NOTICE 'Se omitió users_document_key: existen documentos duplicados en users.';
+    ELSE
+      ALTER TABLE users ADD CONSTRAINT users_document_key UNIQUE (document);
+    END IF;
+  END IF;
+END $$;
 
--- 5. Tabla diary
+-- 3. Tabla diary
 CREATE TABLE IF NOT EXISTS diary (
   id_diary          SERIAL PRIMARY KEY,
-  id_user           INT DEFAULT NULL REFERENCES users(id_user),
+  id_user           INT DEFAULT NULL REFERENCES users(id_user) ON DELETE CASCADE,
   fecha             DATE DEFAULT NULL,
   last_update       TIMESTAMP DEFAULT NOW(),
   diary_visibility  VARCHAR(20) DEFAULT 'yo-psicologo'
 );
 
--- 6. Tabla emotions
+-- 4. Tabla emotions
 CREATE TABLE IF NOT EXISTS emotions (
   id_emotions  SERIAL PRIMARY KEY,
   emot_name    VARCHAR(45) DEFAULT NULL,
@@ -57,7 +85,7 @@ CREATE TABLE IF NOT EXISTS emotions (
   last_update  TIMESTAMP DEFAULT NOW()
 );
 
--- 7. Tabla objetivos
+-- 5. Tabla objetivos
 CREATE TABLE IF NOT EXISTS objetivos (
   id_objetives      SERIAL PRIMARY KEY,
   nombre_objetivo   VARCHAR(45)  DEFAULT NULL,
@@ -67,10 +95,10 @@ CREATE TABLE IF NOT EXISTS objetivos (
   id_user           INT          DEFAULT NULL REFERENCES users(id_user) ON DELETE CASCADE
 );
 
--- 8. Tabla diary_entries
+-- 6. Tabla diary_entries
 CREATE TABLE IF NOT EXISTS diary_entries (
   id_diary_entries SERIAL PRIMARY KEY,
-  id_diary         INT DEFAULT NULL REFERENCES diary(id_diary),
+  id_diary         INT DEFAULT NULL REFERENCES diary(id_diary) ON DELETE CASCADE,
   entry_date       TIMESTAMP DEFAULT NULL,
   description      VARCHAR(255) DEFAULT NULL,
   id_emotions      INT DEFAULT NULL REFERENCES emotions(id_emotions) ON DELETE SET NULL,
@@ -78,16 +106,37 @@ CREATE TABLE IF NOT EXISTS diary_entries (
   last_update      TIMESTAMP DEFAULT NOW()
 );
 
--- 9. Tabla history_chatbot
-CREATE TABLE IF NOT EXISTS history_chatbot (
-  id_history_chatbot SERIAL PRIMARY KEY,
-  conversation       VARCHAR(255) DEFAULT NULL,
-  fecha              TIMESTAMP    DEFAULT NULL,
-  id_chatbot         INT          DEFAULT NULL REFERENCES chatbot(id_chatbot),
-  last_update        TIMESTAMP    DEFAULT NOW()
-);
+-- Asegurar ON DELETE CASCADE en diary.id_user (re-ejecutable).
+-- Si la constraint ya existe (aunque sea sin CASCADE, como en BDs viejas),
+-- la elimina y la recrea con CASCADE.
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'diary_id_user_fkey' AND conrelid = 'diary'::regclass
+  ) THEN
+    ALTER TABLE diary DROP CONSTRAINT diary_id_user_fkey;
+  END IF;
+  ALTER TABLE diary
+    ADD CONSTRAINT diary_id_user_fkey
+    FOREIGN KEY (id_user) REFERENCES users(id_user) ON DELETE CASCADE;
+END $$;
 
--- 10. Tabla meetings_agenda
+-- Asegurar ON DELETE CASCADE en diary_entries.id_diary (re-ejecutable).
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'diary_entries_id_diary_fkey' AND conrelid = 'diary_entries'::regclass
+  ) THEN
+    ALTER TABLE diary_entries DROP CONSTRAINT diary_entries_id_diary_fkey;
+  END IF;
+  ALTER TABLE diary_entries
+    ADD CONSTRAINT diary_entries_id_diary_fkey
+    FOREIGN KEY (id_diary) REFERENCES diary(id_diary) ON DELETE CASCADE;
+END $$;
+
+-- 7. Tabla meetings_agenda
 CREATE TABLE IF NOT EXISTS meetings_agenda (
   id_meetings_agenda SERIAL PRIMARY KEY,
   day                VARCHAR(45)  DEFAULT NULL,
@@ -98,20 +147,7 @@ CREATE TABLE IF NOT EXISTS meetings_agenda (
   id_professional    INT          DEFAULT NULL REFERENCES users(id_user) ON DELETE CASCADE
 );
 
--- 11. Tabla user_activity
-CREATE TABLE IF NOT EXISTS user_activity (
-  id_user_activity SERIAL PRIMARY KEY,
-  id_user          INT DEFAULT NULL REFERENCES users(id_user),
-  session_start    TIMESTAMP DEFAULT NULL,
-  session_end      TIMESTAMP DEFAULT NULL,
-  ip_address       VARCHAR(45) DEFAULT NULL,
-  browser          VARCHAR(45) DEFAULT NULL,
-  os               VARCHAR(45) DEFAULT NULL,
-  visited_section  VARCHAR(45) DEFAULT NULL,
-  last_update      TIMESTAMP DEFAULT NOW()
-);
-
--- 12. Tabla psychobot_sessions
+-- 8. Tabla psychobot_sessions
 CREATE TABLE IF NOT EXISTS psychobot_sessions (
   id_session SERIAL PRIMARY KEY,
   id_user    INT NOT NULL REFERENCES users(id_user) ON DELETE CASCADE,
@@ -119,7 +155,7 @@ CREATE TABLE IF NOT EXISTS psychobot_sessions (
   created_at TIMESTAMP DEFAULT NOW()
 );
 
--- 13. Tabla psychobot_chats
+-- 9. Tabla psychobot_chats
 CREATE TABLE IF NOT EXISTS psychobot_chats (
   id_chat    SERIAL PRIMARY KEY,
   id_user    INT  NOT NULL REFERENCES users(id_user) ON DELETE CASCADE,
@@ -129,7 +165,7 @@ CREATE TABLE IF NOT EXISTS psychobot_chats (
   timestamp  TIMESTAMP DEFAULT NOW()
 );
 
--- 14. Tabla psychobot_memory
+-- 10. Tabla psychobot_memory
 CREATE TABLE IF NOT EXISTS psychobot_memory (
   id_memory  SERIAL PRIMARY KEY,
   id_user    INT  NOT NULL REFERENCES users(id_user) ON DELETE CASCADE,
@@ -138,7 +174,7 @@ CREATE TABLE IF NOT EXISTS psychobot_memory (
   updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- 15. Tabla psychologist_alerts
+-- 11. Tabla psychologist_alerts
 CREATE TABLE IF NOT EXISTS psychologist_alerts (
   id_alert  SERIAL PRIMARY KEY,
   id_user   INT  NOT NULL REFERENCES users(id_user) ON DELETE CASCADE,
@@ -147,7 +183,7 @@ CREATE TABLE IF NOT EXISTS psychologist_alerts (
   timestamp TIMESTAMP DEFAULT NOW()
 );
 
--- 16. Tabla notifications
+-- 12. Tabla notifications
 CREATE TABLE IF NOT EXISTS notifications (
   id_notification SERIAL PRIMARY KEY,
   id_user         INT         NOT NULL REFERENCES users(id_user) ON DELETE CASCADE,
@@ -199,15 +235,11 @@ SELECT setval('users_id_user_seq', (SELECT MAX(id_user) FROM users));
 -- ============================================================
 ALTER TABLE rol                 DISABLE ROW LEVEL SECURITY;
 ALTER TABLE users               DISABLE ROW LEVEL SECURITY;
-ALTER TABLE agenda              DISABLE ROW LEVEL SECURITY;
-ALTER TABLE chatbot             DISABLE ROW LEVEL SECURITY;
 ALTER TABLE diary               DISABLE ROW LEVEL SECURITY;
 ALTER TABLE emotions            DISABLE ROW LEVEL SECURITY;
 ALTER TABLE objetivos           DISABLE ROW LEVEL SECURITY;
 ALTER TABLE diary_entries       DISABLE ROW LEVEL SECURITY;
-ALTER TABLE history_chatbot     DISABLE ROW LEVEL SECURITY;
 ALTER TABLE meetings_agenda     DISABLE ROW LEVEL SECURITY;
-ALTER TABLE user_activity       DISABLE ROW LEVEL SECURITY;
 ALTER TABLE psychobot_sessions  DISABLE ROW LEVEL SECURITY;
 ALTER TABLE psychobot_chats     DISABLE ROW LEVEL SECURITY;
 ALTER TABLE psychobot_memory    DISABLE ROW LEVEL SECURITY;

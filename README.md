@@ -87,6 +87,7 @@ Psychoway es un **monorepo** organizado con **pnpm workspaces** que contiene un 
 - **API REST**: Endpoints RESTful organizados por dominio
 - **Arquitectura por capas**: `routes → controllers → services → repositories`
 - **Middleware**: Autenticación JWT, manejo centralizado de errores
+- **Validación y autorización**: Entrada validada en `utils/validators.js` (email, documento, doc_type) y acceso por rol con `requireAdmin`/`requireRole`
 - **ESM**: Módulos nativos de ES (`"type": "module"`)
 - **Port**: `5000`
 
@@ -94,7 +95,7 @@ Psychoway es un **monorepo** organizado con **pnpm workspaces** que contiene un 
 
 - **Pool de conexiones**: `pg` con connection string de Supabase y SSL
 - **Queries parametrizadas**: Sintaxis PostgreSQL (`$1, $2, ...`)
-- **Migración**: `supabase_schema.sql` / `psychoway.sql` para inicializar el esquema
+- **Schema único**: `supabase_schema.sql` es el archivo canónico e idempotente de BD — se ejecuta una vez en el SQL Editor de Supabase y deja el esquema listo (12 tablas, UNIQUE en email/documento, FKs con CASCADE, seeds). No hay migraciones en código.
 
 #### **Servicios Externos**
 
@@ -141,15 +142,14 @@ Psychoway/                       # Monorepo (pnpm workspace)
 │   │   ├── controllers/         # Manejo de peticiones/respuestas
 │   │   ├── services/            # Lógica de negocio
 │   │   ├── repositories/        # Acceso a datos (queries SQL)
-│   │   ├── middlewares/         # Auth JWT, manejo de errores
-│   │   ├── config/              # database, environment, gemini, migrations
-│   │   ├── utils/               # Constantes y helpers
+│   │   ├── middlewares/         # Auth JWT, autorización por rol (requireRole/requireAdmin)
+│   │   ├── config/              # database, environment, gemini
+│   │   ├── utils/               # Constantes y validadores (validators.js)
 │   │   └── server.js            # Entry point
 │   ├── .env.example             # Plantilla de variables de entorno
 │   └── package.json
 │
 ├── supabase_schema.sql          # Esquema de base de datos (PostgreSQL)
-├── psychoway.sql                # Backup/script SQL
 ├── pnpm-workspace.yaml          # Configuración de workspaces
 ├── vercel.json                  # Configuración de deploy (Vercel)
 ├── package.json                 # Scripts del monorepo
@@ -340,5 +340,5 @@ Especial agradecimiento a:
 
 ---
 
-**Última actualización**: 2026-08-02
+**Última actualización**: 2026-08-03
 **Versión**: 0.5 | **Estado**: En Desarrollo ⚙️

@@ -39,6 +39,18 @@ export async function existsByDocumentOrEmail(document, email) {
 }
 
 /**
+ * Verifica si un documento o email ya existen en otro usuario.
+ * Excluye al usuario indicado (para validar unicidad en updates).
+ */
+export async function existsByDocumentOrEmailExcluding(document, email, excludeId) {
+  const rows = await query(
+    "SELECT id_user FROM users WHERE (document = $1 OR email = $2) AND id_user <> $3",
+    [document, email, excludeId],
+  );
+  return rows.length > 0;
+}
+
+/**
  * Crea un nuevo usuario.
  */
 export async function create(userData) {
