@@ -8,5 +8,6 @@ router.post("/", ctrl.create);
 router.get("/psychologist/:id", ctrl.getByProfessional);
 router.get("/user/:id", ctrl.getByUser);
 router.get("/professional-history/:id", ctrl.getProfessionalHistory);
+router.patch("/:id/attendance", ctrl.updateAttendance);
 
 export default router;

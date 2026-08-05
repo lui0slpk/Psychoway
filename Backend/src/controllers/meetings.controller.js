@@ -36,3 +36,14 @@ export async function getProfessionalHistory(req, res, next) {
     next(error);
   }
 }
+
+export async function updateAttendance(req, res, next) {
+  try {
+    const { id } = req.params;
+    const { asistencia } = req.body;
+    const result = await meetingsService.updateAttendance(id, asistencia);
+    res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+}
