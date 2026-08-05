@@ -20,10 +20,9 @@
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "prestart": "fuser -k 3000/tcp 5000/tcp 2>/dev/null || true",
-    "frontend": "react-scripts start",
+    "frontend": "cmd /C \"set PORT=3000 && react-scripts start\"",
     "server": "cd Backend && pnpm start",
-    "start": "concurrently --kill-others-on-fail \"pnpm run frontend\" \"pnpm run server\"",
+    "start": "concurrently \"pnpm run server\" \"pnpm run frontend\"",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"

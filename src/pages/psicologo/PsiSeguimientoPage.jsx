@@ -119,15 +119,87 @@ function PsiSeguimientoPage() {
               </div>
               <div className="p-0">
                 {unreadAlerts.map(alert => (
-                  <div key={alert.id_alert} className="d-flex justify-content-between align-items-start p-3 border-bottom">
-                    <div className="me-3">
-                      <div className="fw-bold small"><AlertTriangle size={14} className="text-danger me-1" />Atención: {alert.aprendiz_nombre} (Doc: {alert.document})</div>
-                      <span className="text-dark small d-block mt-1"><strong>Motivo:</strong> {alert.motivo}</span>
-                      <small className="text-muted">{new Date(alert.timestamp).toLocaleString()}</small>
+                  <div key={alert.id_alert} className="p-3 border-bottom" style={{ background: "#fff8f8" }}>
+                    <div className="d-flex align-items-start gap-3">
+                      {/* Foto del aprendiz */}
+                      <div className="flex-shrink-0">
+                        {alert.aprendiz_foto ? (
+                          <img
+                            src={alert.aprendiz_foto}
+                            alt={alert.aprendiz_nombre}
+                            style={{ width: 52, height: 52, borderRadius: "50%", objectFit: "cover", border: "2px solid #dc3545" }}
+                          />
+                        ) : (
+                          <div style={{ width: 52, height: 52, borderRadius: "50%", background: "linear-gradient(135deg, #dc3545, #a71d2a)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            <span style={{ color: "#fff", fontWeight: "bold", fontSize: "1.2rem" }}>
+                              {alert.aprendiz_nombre?.charAt(0) || "?"}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Info del aprendiz + motivo */}
+                      <div className="flex-grow-1 min-w-0">
+                        <div className="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                          <AlertTriangle size={14} className="text-danger flex-shrink-0" />
+                          <span className="fw-bold small text-danger">Alerta de riesgo</span>
+                          <small className="text-muted ms-auto">{new Date(alert.timestamp).toLocaleString()}</small>
+                        </div>
+
+                        {/* Datos del aprendiz */}
+                        <div className="rounded-3 p-2 mb-2" style={{ background: "#f8d7da", fontSize: "0.82rem" }}>
+                          <div className="row g-1">
+                            <div className="col-sm-6">
+                              <span className="text-muted">Nombre:</span>{" "}
+                              <strong>{alert.aprendiz_nombre}</strong>
+                            </div>
+                            <div className="col-sm-6">
+                              <span className="text-muted">{alert.aprendiz_doc_type || "Doc"}:</span>{" "}
+                              <strong>{alert.document}</strong>
+                            </div>
+                            <div className="col-sm-6">
+                              <span className="text-muted">Correo:</span>{" "}
+                              <strong>{alert.aprendiz_email || "—"}</strong>
+                            </div>
+                            <div className="col-sm-6">
+                              <span className="text-muted">Fecha nac.:</span>{" "}
+                              <strong>
+                                {alert.aprendiz_birth_date
+                                  ? new Date(alert.aprendiz_birth_date).toLocaleDateString()
+                                  : "—"}
+                              </strong>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Motivo */}
+                        <div className="small mb-2">
+                          <strong>Motivo:</strong> {alert.motivo}
+                        </div>
+
+                        {/* Acciones */}
+                        <div className="d-flex gap-2 flex-wrap">
+                          {alert.aprendiz_email && (
+                            <a
+                              href={`mailto:${alert.aprendiz_email}?subject=Psychoway%20-%20Comunicado%20importante&body=Hola%20${encodeURIComponent(alert.aprendiz_nombre)}%2C%0A%0AEn%20Psychoway%20hemos%20notado%20que%20puedes%20estar%20pasando%20por%20un%20momento%20dif%C3%ADcil.%20Estamos%20aqu%C3%AD%20para%20apoyarte.%0A%0ACu%C3%ADdate%2C%0AEquipo%20Psychoway`}
+                              className="btn btn-sm btn-danger rounded-pill px-3"
+                              style={{ fontSize: "0.78rem" }}
+                            >
+                              ✉️ Contactar aprendiz
+                            </a>
+                          )}
+                          <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            className="btn btn-outline-secondary btn-sm rounded-pill px-3"
+                            style={{ fontSize: "0.78rem" }}
+                            onClick={() => markAlertAsRead(alert.id_alert)}
+                          >
+                            <CheckCircle size={13} className="me-1" />Marcar como leído
+                          </motion.button>
+                        </div>
+                      </div>
                     </div>
-                    <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="btn btn-outline-danger btn-sm rounded-pill px-3 flex-shrink-0" onClick={() => markAlertAsRead(alert.id_alert)}>
-                      <CheckCircle size={14} className="me-1" />Leído
-                    </motion.button>
                   </div>
                 ))}
               </div>

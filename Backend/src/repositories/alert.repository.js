@@ -7,7 +7,11 @@ export async function findAll() {
   return query(
     `SELECT a.id_alert, a.id_user, a.motivo, a.leido, a.timestamp, 
             CONCAT(u.names, ' ', u.last_names) as aprendiz_nombre, 
-            u.document
+            u.document,
+            u.email as aprendiz_email,
+            u.birth_date as aprendiz_birth_date,
+            u.doc_type as aprendiz_doc_type,
+            u.profile_photo as aprendiz_foto
      FROM psychologist_alerts a
      JOIN users u ON a.id_user = u.id_user
      ORDER BY a.leido ASC, a.timestamp DESC`,

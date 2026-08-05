@@ -2,6 +2,7 @@ import * as diaryRepo from "../repositories/diary.repository.js";
 import * as emotionRepo from "../repositories/emotion.repository.js";
 import * as objectiveRepo from "../repositories/objective.repository.js";
 import { EMOTION_NAMES, EMOTION_STATES } from "../utils/constants.js";
+import { analyzeContent } from "./safety.service.js";
 
 /**
  * Crea una entrada de diario.
@@ -39,6 +40,11 @@ export async function createEntry(userId, emotionIndex, description) {
 
   // 4. Crear entrada
   const entryId = await diaryRepo.createEntry(diaryId, description, emotionId, objectiveId);
+
+  // 5. Análisis de seguridad en segundo plano (fire-and-forget, no bloquea la respuesta)
+  if (description) {
+    analyzeContent(userId, description, "diario").catch(() => {});
+  }
 
   return {
     message: "Entrada de diario registrada correctamente",
