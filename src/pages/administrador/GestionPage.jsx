@@ -3,15 +3,13 @@ import { Link } from "react-router-dom";
 import MainLayout from "../../layouts/MainLayout";
 import { motion } from "framer-motion";
 import { UserPlus, Edit3, Eye, EyeOff } from "lucide-react";
-import { useAuth } from "../../context/AuthContext";
+import usersApi from "../../api/users.api";
 import { showSuccess, showError, showWarning } from "../../utils/alerts";
 
 function GestionPage() {
-  const { authFetch } = useAuth();
-
   const [showPassword, setShowPassword] = useState(false);
   const [touched, setTouched] = useState({});
-  const [formData, setFormData] = useState({ rol: "", documento: "", tipoDocumento: "", nombres: "", apellidos: "", fechaNacimiento: "", correo: "", password: "" });
+  const [formData, setFormData] = useState({ rol: "", documento: "", tipoDocumento: "", nombres: "", apellidos: "", fechaNacimiento: "", correo: "", password: "", numeroContacto: "", numeroFijo: "", programaFormacion: "", numeroFicha: "" });
 
   const validaciones = {
     documento: { longitud: formData.documento.length >= 8 && formData.documento.length <= 10 },
@@ -20,20 +18,37 @@ function GestionPage() {
       tieneMinuscula: /[a-z]/.test(formData.password), tieneNumero: /[0-9]/.test(formData.password),
       tieneEspecial: /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(formData.password),
     },
+    fechaNacimiento: {
+      valida: formData.fechaNacimiento && formData.tipoDocumento ? (() => {
+        const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+        const nac = new Date(formData.fechaNacimiento);
+        let edad = hoy.getFullYear() - nac.getFullYear();
+        const m = hoy.getMonth() - nac.getMonth();
+        if (m < 0 || (m === 0 && hoy.getDate() < nac.getDate())) edad--;
+        if ((formData.tipoDocumento === "CC" || formData.tipoDocumento === "CE") && edad < 18) return false;
+        if (formData.tipoDocumento === "TI" && edad >= 18) return false;
+        return true;
+      })() : (formData.fechaNacimiento ? true : false),
+    },
   };
   const documentoValido = Object.values(validaciones.documento).every(Boolean);
   const passwordValida = Object.values(validaciones.password).every(Boolean);
+  const fechaValida = validaciones.fechaNacimiento.valida;
 
   const Regla = ({ ok, texto }) => (<span style={{ display: "block", fontSize: "13px", color: ok ? "#005222" : "#dc3545" }}>{ok ? "✅" : "❌"} {texto}</span>);
 
   const handleChange = (e) => {
     let value = e.target.value;
-    if (e.target.id === "documento") value = value.replace(/\D/g, "");
+    if (e.target.id === "documento" || e.target.id === "numeroContacto" || e.target.id === "numeroFijo") {
+      value = value.replace(/\D/g, "");
+    } else if (e.target.id === "nombres" || e.target.id === "apellidos") {
+      value = value.replace(/[<>]/g, ""); // Prevent XSS
+    }
     setFormData({ ...formData, [e.target.id]: value }); setTouched({ ...touched, [e.target.id]: true });
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault(); setTouched({ password: true, documento: true });
+    e.preventDefault(); setTouched({ password: true, documento: true, fechaNacimiento: true });
     if (!passwordValida || !documentoValido) {
       showWarning(
         "Formulario incompleto",
@@ -41,16 +56,21 @@ function GestionPage() {
       );
       return;
     }
+    if (!fechaValida) {
+      showError("Fecha inválida", "La fecha de nacimiento no corresponde al tipo de documento seleccionado.");
+      return;
+    }
     try {
-      const response = await authFetch("http://localhost:5000/api/users/create", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(formData) });
-      const data = await response.json();
-      if (response.ok) {
-        showSuccess("¡Registro Exitoso!", "El usuario ha sido creado correctamente.");
-        setFormData({ rol: "", documento: "", tipoDocumento: "", nombres: "", apellidos: "", fechaNacimiento: "", correo: "", password: "" }); setTouched({});
-      } else showError("Error", data.message || "Error al crear usuario");
+      await usersApi.create(formData);
+      showSuccess("¡Registro Exitoso!", "El usuario ha sido creado correctamente.");
+      setFormData({ rol: "", documento: "", tipoDocumento: "", nombres: "", apellidos: "", fechaNacimiento: "", correo: "", password: "", numeroContacto: "", numeroFijo: "", programaFormacion: "", numeroFicha: "" }); setTouched({});
     } catch (error) {
-      console.error("Error:", error);
-      showError("Error de conexión", "Error al conectar con el servidor.");
+      if (error.status) {
+        showError("Error", error.data?.message || "Error al crear usuario");
+      } else {
+        console.error("Error:", error);
+        showError("Error de conexión", "Error al conectar con el servidor.");
+      }
     }
   };
 
@@ -94,11 +114,45 @@ function GestionPage() {
                 <div className="mb-3">
                   <label className="form-label small fw-semibold">Fecha de nacimiento <span className="text-danger">*</span></label>
                   <input type="date" className="form-control rounded-3 border-2" id="fechaNacimiento" value={formData.fechaNacimiento} onChange={handleChange} required />
+                  {touched.fechaNacimiento && formData.fechaNacimiento && (
+                    <div className="mt-1"><Regla ok={validaciones.fechaNacimiento.valida} texto="La edad debe corresponder al tipo de documento" /></div>
+                  )}
                 </div>
                 <div className="mb-3">
                   <label className="form-label small fw-semibold">Correo <span className="text-danger">*</span></label>
                   <input type="email" className="form-control rounded-3 border-2" id="correo" placeholder="psychoway66@gmail.com" value={formData.correo} onChange={handleChange} required />
                 </div>
+                {(formData.rol === "aprendiz" || formData.rol === "psicologo" || formData.rol === "administrador") && formData.rol !== "" && (
+                  <div className="row mb-3">
+                    <div className="col-md-6">
+                      <label className="form-label small fw-semibold">Número de celular <span className="text-danger">*</span></label>
+                      <input type="tel" className="form-control rounded-3 border-2" id="numeroContacto" placeholder="3001234567" value={formData.numeroContacto} onChange={handleChange} required />
+                    </div>
+                    <div className="col-md-6">
+                      <label className="form-label small fw-semibold">Número fijo (Opcional)</label>
+                      <input type="tel" className="form-control rounded-3 border-2" id="numeroFijo" placeholder="6041234567" value={formData.numeroFijo} onChange={handleChange} />
+                    </div>
+                  </div>
+                )}
+                {formData.rol === "aprendiz" && (
+                  <div className="row mb-3">
+                    <div className="col-md-6">
+                      <label className="form-label small fw-semibold">Programa de formación <span className="text-danger">*</span></label>
+                      <select className="form-select rounded-3 border-2" id="programaFormacion" value={formData.programaFormacion} onChange={handleChange} required>
+                        <option value="" disabled>Seleccione un programa</option>
+                        <option value="ADSO">Analisis y Desarrollo de Software (ADSO)</option>
+                        <option value="MECATRONICA">Mecatrónica</option>
+                        <option value="TGS">Tecnólogo en Gestión de Empresas Agropecuarias (TGS)</option>
+                        <option value="QUIMICA">Química</option>
+                        <option value="TRF">Tecnólogo en Regencia de Farmacia (TRF)</option>
+                      </select>
+                    </div>
+                    <div className="col-md-6">
+                      <label className="form-label small fw-semibold">Número de ficha <span className="text-danger">*</span></label>
+                      <input type="text" className="form-control rounded-3 border-2" id="numeroFicha" placeholder="255678" value={formData.numeroFicha} onChange={handleChange} required />
+                    </div>
+                  </div>
+                )}
                 <div className="mb-4">
                   <label className="form-label small fw-semibold">Contraseña <span className="text-danger">*</span></label>
                   <div className="input-group">

@@ -5,6 +5,16 @@ import env from "../config/environment.js";
 import * as userRepo from "../repositories/user.repository.js";
 import { sendPasswordResetEmail } from "./email.service.js";
 import { ROLES } from "../utils/constants.js";
+import { validateAgeByDocType } from "./users.service.js";
+import {
+  DOC_TYPES,
+  normalizeEmail,
+  normalizeDocument,
+  normalizeText,
+  normalizePhone,
+  isValidEmail,
+  isValidDocument,
+} from "../utils/validators.js";
 
 /**
  * Almacén temporal de tokens de recuperación.
@@ -16,10 +26,30 @@ const resetTokens = new Map();
  * Registra un nuevo usuario.
  */
 export async function register(userData) {
-  const { document, doc_type, names, last_names, birth_date, email, password } = userData;
+  const { document, doc_type, names, last_names, birth_date, email, password, contact_number, landline_number, training_program, ficha_number } = userData;
+
+  const normalizedEmail = normalizeEmail(email);
+  const normalizedDocument = normalizeDocument(document);
+  const normalizedNames = normalizeText(names);
+  const normalizedLastnames = normalizeText(last_names);
+  const normalizedContactNumber = normalizePhone(contact_number);
+  const normalizedLandlineNumber = normalizePhone(landline_number);
+
+  if (!DOC_TYPES.includes(doc_type)) {
+    throw { status: 400, message: `Tipo de documento inválido: ${doc_type}` };
+  }
+  if (!isValidEmail(normalizedEmail)) {
+    throw { status: 400, message: "El correo no es válido" };
+  }
+  if (!isValidDocument(normalizedDocument, doc_type)) {
+    throw { status: 400, message: "El documento no es válido para el tipo indicado" };
+  }
+
+  // Validar coherencia edad ↔ tipo de documento
+  validateAgeByDocType(doc_type, birth_date);
 
   // Verificar si ya existe
-  const exists = await userRepo.existsByDocumentOrEmail(document, email);
+  const exists = await userRepo.existsByDocumentOrEmail(normalizedDocument, normalizedEmail);
   if (exists) {
     throw { status: 409, message: "El documento o correo ya se encuentra registrado" };
   }
@@ -28,19 +58,23 @@ export async function register(userData) {
 
   try {
     await userRepo.create({
-      document,
+      document: normalizedDocument,
       doc_type,
-      names,
-      last_names,
+      names: normalizedNames,
+      last_names: normalizedLastnames,
       birth_date,
-      email,
+      email: normalizedEmail,
       password: hashedPassword,
+      contact_number: normalizedContactNumber,
+      landline_number: normalizedLandlineNumber,
+      training_program,
+      ficha_number,
       id_rol: 1, // Aprendiz por defecto
     });
 
     return { message: "Usuario registrado correctamente" };
   } catch (error) {
-    if (error.code === "ER_DUP_ENTRY") {
+    if (error.code === "23505" || error.code === "ER_DUP_ENTRY") {
       throw { status: 409, message: "El documento o correo ya se encuentra registrado" };
     }
     throw error;

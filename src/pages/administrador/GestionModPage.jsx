@@ -12,7 +12,7 @@ function GestionModPage() {
   const [usuarioEncontrado, setUsuarioEncontrado] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [formData, setFormData] = useState({ rol: "", documento: "", tipoDocumento: "", nombres: "", apellidos: "", fechaNacimiento: "", correo: "", password: "", confirmPassword: "" });
+  const [formData, setFormData] = useState({ rol: "", documento: "", tipoDocumento: "", nombres: "", apellidos: "", fechaNacimiento: "", correo: "", password: "", confirmPassword: "", numeroContacto: "", numeroFijo: "", programaFormacion: "", numeroFicha: "" });
   const [touched, setTouched] = useState({});
   const [userId, setUserId] = useState(null);
 
@@ -52,14 +52,23 @@ function GestionModPage() {
       const data = await response.json();
       setUsuarioEncontrado(true); setUserId(data.id_user);
       showSuccess("¡Usuario Encontrado!", "Datos cargados.");
-      setFormData({ rol: data.rol || "", documento: data.document || "", tipoDocumento: data.tipoDocumento || "", nombres: data.nombres || "", apellidos: data.apellidos || "", fechaNacimiento: data.fechaNacimiento || "", correo: data.correo || "", password: "", confirmPassword: "" });
+      setFormData({ rol: data.rol || "", documento: data.document || "", tipoDocumento: data.tipoDocumento || "", nombres: data.nombres || "", apellidos: data.apellidos || "", fechaNacimiento: data.fechaNacimiento || "", correo: data.correo || "", numeroContacto: data.contact_number || "", numeroFijo: data.landline_number || "", programaFormacion: data.training_program || "", numeroFicha: data.ficha_number || "", password: "", confirmPassword: "" });
     } catch (error) {
       console.error("Error:", error);
       showError("Error de conexión", "Error de conexión con el backend.");
     }
   };
 
-  const handleChange = (e) => { let v = e.target.value; if (e.target.id === "documento") v = v.replace(/\D/g, ""); setFormData({ ...formData, [e.target.id]: v }); setTouched({ ...touched, [e.target.id]: true }); };
+  const handleChange = (e) => { 
+    let v = e.target.value; 
+    if (e.target.id === "documento" || e.target.id === "numeroContacto" || e.target.id === "numeroFijo") {
+      v = v.replace(/\D/g, ""); 
+    } else if (e.target.id === "nombres" || e.target.id === "apellidos") {
+      v = v.replace(/[<>]/g, ""); // Prevent XSS
+    }
+    setFormData({ ...formData, [e.target.id]: v }); 
+    setTouched({ ...touched, [e.target.id]: true }); 
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault(); setTouched({ documento: true, password: true });
@@ -135,6 +144,37 @@ function GestionModPage() {
                   </div>
                   <div className="mb-3"><label className="form-label small fw-semibold">Fecha de nacimiento</label><input type="date" className="form-control rounded-3 border-2" id="fechaNacimiento" value={formData.fechaNacimiento} onChange={handleChange} required /></div>
                   <div className="mb-3"><label className="form-label small fw-semibold">Correo</label><input type="email" className="form-control rounded-3 border-2" id="correo" value={formData.correo} onChange={handleChange} required /></div>
+                  {(formData.rol === "aprendiz" || formData.rol === "psicologo" || formData.rol === "administrador") && formData.rol !== "" && (
+                    <div className="row mb-3">
+                      <div className="col-md-6">
+                        <label className="form-label small fw-semibold">Número de celular <span className="text-danger">*</span></label>
+                        <input type="tel" className="form-control rounded-3 border-2" id="numeroContacto" placeholder="3001234567" value={formData.numeroContacto} onChange={handleChange} required />
+                      </div>
+                      <div className="col-md-6">
+                        <label className="form-label small fw-semibold">Número fijo (Opcional)</label>
+                        <input type="tel" className="form-control rounded-3 border-2" id="numeroFijo" placeholder="6041234567" value={formData.numeroFijo} onChange={handleChange} />
+                      </div>
+                    </div>
+                  )}
+                  {formData.rol === "aprendiz" && (
+                    <div className="row mb-3">
+                      <div className="col-md-6">
+                        <label className="form-label small fw-semibold">Programa de formación <span className="text-danger">*</span></label>
+                        <select className="form-select rounded-3 border-2" id="programaFormacion" value={formData.programaFormacion} onChange={handleChange} required>
+                          <option value="" disabled>Seleccione un programa</option>
+                          <option value="ADSO">Analisis y Desarrollo de Software (ADSO)</option>
+                          <option value="MECATRONICA">Mecatrónica</option>
+                          <option value="TGS">Tecnólogo en Gestión de Empresas Agropecuarias (TGS)</option>
+                          <option value="QUIMICA">Química</option>
+                          <option value="TRF">Tecnólogo en Regencia de Farmacia (TRF)</option>
+                        </select>
+                      </div>
+                      <div className="col-md-6">
+                        <label className="form-label small fw-semibold">Número de ficha <span className="text-danger">*</span></label>
+                        <input type="text" className="form-control rounded-3 border-2" id="numeroFicha" placeholder="255678" value={formData.numeroFicha} onChange={handleChange} required />
+                      </div>
+                    </div>
+                  )}
                   <div className="mb-3"><label className="form-label small fw-semibold">Contraseña</label>
                     <div className="input-group"><input type={showPassword ? "text" : "password"} className="form-control rounded-start-3 border-2 border-end-0" id="password" placeholder="********" value={formData.password} onChange={handleChange} />
                       <span className="input-group-text bg-white border-2 border-start-0 rounded-end-3" style={{ cursor: "pointer" }} onClick={() => setShowPassword(!showPassword)}>{showPassword ? <EyeOff size={16} className="text-muted" /> : <Eye size={16} className="text-muted" />}</span></div>

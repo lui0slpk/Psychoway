@@ -2,20 +2,20 @@ import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import MainLayout from "../../layouts/MainLayout";
 import { useAuth } from "../../context/AuthContext";
+import usersApi from "../../api/users.api";
 import { motion } from "framer-motion";
 import { User, FileText, Lock, Eye, EyeOff, Save, Trash2, Shield, Camera, Upload, X } from "lucide-react";
 import { showError, showSuccess, showConfirm, showPrompt } from "../../utils/alerts";
 
-const API_URL = "http://localhost:5000/api";
-
 function MiCuentaPage() {
-  const { user, authFetch, logout, updateUser } = useAuth();
+  const { user, logout, updateUser } = useAuth();
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
 
   const [formData, setFormData] = useState({
     documento: "", tipoDocumento: "", nombres: "", apellidos: "",
     fechaNacimiento: "", correo: "", password: "", confirmPassword: "",
+    numeroContacto: "", numeroFijo: "", programaFormacion: "", numeroFicha: "",
   });
   const [profilePhoto, setProfilePhoto] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
@@ -33,22 +33,23 @@ function MiCuentaPage() {
     if (!user) return;
     const fetchProfile = async () => {
       try {
-        const res = await authFetch(`${API_URL}/users/profile/${user.id || user.id_user}`);
-        if (res.ok) {
-          const data = await res.json();
-          setFormData({
-            documento: data.document || "",
-            tipoDocumento: data.tipoDocumento || "",
-            nombres: data.nombres || "",
-            apellidos: data.apellidos || "",
-            fechaNacimiento: data.fechaNacimiento || "",
-            correo: data.correo || "",
-            password: "",
-            confirmPassword: "",
-          });
-          if (data.profile_photo) {
-            setPhotoPreview(data.profile_photo);
-          }
+        const data = await usersApi.getProfile(user.id || user.id_user);
+        setFormData({
+          documento: data.document || "",
+          tipoDocumento: data.tipoDocumento || "",
+          nombres: data.nombres || "",
+          apellidos: data.apellidos || "",
+          fechaNacimiento: data.fechaNacimiento || "",
+          correo: data.correo || "",
+          numeroContacto: data.contact_number || "",
+          numeroFijo: data.landline_number || "",
+          programaFormacion: data.training_program || "",
+          numeroFicha: data.ficha_number || "",
+          password: "",
+          confirmPassword: "",
+        });
+        if (data.profile_photo) {
+          setPhotoPreview(data.profile_photo);
         }
       } catch (error) {
         console.error("Error al cargar perfil:", error);
@@ -60,6 +61,10 @@ function MiCuentaPage() {
           apellidos: user?.last_names || "",
           fechaNacimiento: "",
           correo: "",
+          numeroContacto: "",
+          numeroFijo: "",
+          programaFormacion: "",
+          numeroFicha: "",
           password: "",
           confirmPassword: "",
         });
@@ -70,7 +75,15 @@ function MiCuentaPage() {
     fetchProfile();
   }, [user]);
 
-  const handleChange = (e) => setFormData({ ...formData, [e.target.id]: e.target.value });
+  const handleChange = (e) => {
+    let value = e.target.value;
+    if (e.target.id === "documento" || e.target.id === "numeroContacto" || e.target.id === "numeroFijo") {
+      value = value.replace(/\D/g, "");
+    } else if (e.target.id === "nombres" || e.target.id === "apellidos") {
+      value = value.replace(/[<>]/g, ""); // Prevenir XSS
+    }
+    setFormData({ ...formData, [e.target.id]: value });
+  };
 
   // ==================== FOTO DE PERFIL ====================
   const handleFileSelect = (file) => {
@@ -142,6 +155,10 @@ function MiCuentaPage() {
         apellidos: formData.apellidos,
         fechaNacimiento: formData.fechaNacimiento,
         correo: formData.correo,
+        numeroContacto: formData.numeroContacto,
+        numeroFijo: formData.numeroFijo,
+        programaFormacion: formData.programaFormacion,
+        numeroFicha: formData.numeroFicha,
       };
 
       // Solo enviar password si se llenó
@@ -154,27 +171,17 @@ function MiCuentaPage() {
         bodyData.profilePhoto = profilePhoto;
       }
 
-      const res = await authFetch(`${API_URL}/users/profile/${userId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(bodyData),
-      });
+      const data = await usersApi.updateProfile(userId, bodyData);
 
-      if (res.ok) {
-        const data = await res.json();
-        // Actualizar el contexto con los nuevos datos
-        if (data.user) {
-          updateUser(data.user);
-        }
-        // Limpiar passwords
-        setFormData(prev => ({ ...prev, password: "", confirmPassword: "" }));
-        setProfilePhoto(null);
-
-        showSuccess("¡Guardado!", "Tu perfil ha sido actualizado correctamente.");
-      } else {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.message || "Error al actualizar");
+      // Actualizar el contexto con los nuevos datos
+      if (data.user) {
+        updateUser(data.user);
       }
+      // Limpiar passwords
+      setFormData(prev => ({ ...prev, password: "", confirmPassword: "" }));
+      setProfilePhoto(null);
+
+      showSuccess("¡Guardado!", "Tu perfil ha sido actualizado correctamente.");
     } catch (error) {
       console.error("Error al guardar:", error);
       showError("Error", error.message || "No se pudo actualizar el perfil. Intenta de nuevo.");
@@ -209,16 +216,11 @@ function MiCuentaPage() {
       if (confirm2.isConfirmed) {
         try {
           const userId = user.id || user.id_user;
-          const res = await authFetch(`${API_URL}/users/delete/${userId}`, { method: "DELETE" });
+          await usersApi.remove(userId);
 
-          if (res.ok) {
-            await showSuccess("Cuenta eliminada", "Tu cuenta ha sido eliminada. Serás redirigido al inicio.", { timer: 2500 });
-            logout();
-            navigate("/");
-          } else {
-            const errData = await res.json().catch(() => ({}));
-            throw new Error(errData.message || "No se pudo eliminar la cuenta");
-          }
+          await showSuccess("Cuenta eliminada", "Tu cuenta ha sido eliminada. Serás redirigido al inicio.", { timer: 2500 });
+          logout();
+          navigate("/");
         } catch (error) {
           console.error("Error al eliminar:", error);
           showError("Error", error.message || "No se pudo eliminar la cuenta. Intenta de nuevo.");
@@ -264,9 +266,9 @@ function MiCuentaPage() {
                           onClick={() => fileInputRef.current?.click()}
                         >
                           {photoPreview ? (
-                            <img src={photoPreview} alt="Foto de perfil" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                            <img key="preview-img" src={photoPreview} alt="Foto de perfil" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                           ) : (
-                            <User size={40} color="#fff" />
+                            <User key="preview-icon" size={40} color="#fff" />
                           )}
                         </div>
                         {photoPreview && (
@@ -342,6 +344,33 @@ function MiCuentaPage() {
                     <label className="form-label small fw-semibold">Correo</label>
                     <input type="email" className="form-control rounded-3 border-2" id="correo" placeholder="correo@ejemplo.com" value={formData.correo} onChange={handleChange} />
                   </div>
+                  <div className="row mb-3">
+                    <div className="col-md-6">
+                      <label className="form-label small fw-semibold">Número de celular</label>
+                      <input type="tel" className="form-control rounded-3 border-2" id="numeroContacto" placeholder="3001234567" value={formData.numeroContacto} onChange={handleChange} required />
+                    </div>
+                    <div className="col-md-6">
+                      <label className="form-label small fw-semibold">Número fijo (Opcional)</label>
+                      <input type="tel" className="form-control rounded-3 border-2" id="numeroFijo" placeholder="6041234567" value={formData.numeroFijo} onChange={handleChange} />
+                    </div>
+                  </div>
+                  <div className="row mb-3">
+                    <div className="col-md-6">
+                      <label className="form-label small fw-semibold">Programa de formación</label>
+                      <select className="form-select rounded-3 border-2" id="programaFormacion" value={formData.programaFormacion} onChange={handleChange} required>
+                        <option value="" disabled>Seleccione un programa</option>
+                        <option value="ADSO">Analisis y Desarrollo de Software (ADSO)</option>
+                        <option value="MECATRONICA">Mecatrónica</option>
+                        <option value="TGS">Tecnólogo en Gestión de Empresas Agropecuarias (TGS)</option>
+                        <option value="QUIMICA">Química</option>
+                        <option value="TRF">Tecnólogo en Regencia de Farmacia (TRF)</option>
+                      </select>
+                    </div>
+                    <div className="col-md-6">
+                      <label className="form-label small fw-semibold">Número de ficha</label>
+                      <input type="text" className="form-control rounded-3 border-2" id="numeroFicha" placeholder="255678" value={formData.numeroFicha} onChange={handleChange} required />
+                    </div>
+                  </div>
 
                   {/* ===== CONTRASEÑA ===== */}
                   <div className="mb-3">
@@ -391,10 +420,10 @@ function MiCuentaPage() {
               {photoPreview && (
                 <div className="text-center mb-3">
                   <div style={{ width: 64, height: 64, borderRadius: "50%", overflow: "hidden", margin: "0 auto", border: "3px solid #005222" }}>
-                    <img src={photoPreview} alt="Perfil" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    <img key="sidebar-img" src={photoPreview} alt="Perfil" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                   </div>
-                  <p className="fw-semibold small mt-2 mb-0">{formData.nombres} {formData.apellidos}</p>
-                  <p className="text-muted" style={{ fontSize: "0.75rem" }}>Aprendiz</p>
+                  <p className="fw-semibold small mt-2 mb-0"><span>{formData.nombres} {formData.apellidos}</span></p>
+                  <p className="text-muted" style={{ fontSize: "0.75rem" }}><span>Aprendiz</span></p>
                 </div>
               )}
               <div className="d-flex flex-column gap-2">

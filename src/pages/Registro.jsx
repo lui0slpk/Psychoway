@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { showSuccess, showError, showWarning } from "../utils/alerts";
+import authApi from "../api/auth.api";
 
 function Registro() {
   const navigate = useNavigate();
@@ -17,6 +18,10 @@ function Registro() {
     nombres: "",
     apellidos: "",
     fechaNacimiento: "",
+    numeroContacto: "",
+    numeroFijo: "",
+    programaFormacion: "",
+    numeroFicha: "",
   });
 
   // Validaciones
@@ -36,6 +41,24 @@ function Registro() {
         form.contraseña,
       ),
     },
+    fechaNacimiento: {
+      valida: form.fechaNacimiento && form.tipoDocumento ? (() => {
+        const hoy = new Date();
+        hoy.setHours(0, 0, 0, 0);
+        const [año, mes, dia] = form.fechaNacimiento.split("-");
+        const nacimiento = new Date(año, mes - 1, dia);
+        
+        let edad = hoy.getFullYear() - nacimiento.getFullYear();
+        const m = hoy.getMonth() - nacimiento.getMonth();
+        if (m < 0 || (m === 0 && hoy.getDate() < nacimiento.getDate())) {
+          edad--;
+        }
+
+        if ((form.tipoDocumento === "CC" || form.tipoDocumento === "CE") && edad < 18) return false;
+        if (form.tipoDocumento === "TI" && edad >= 18) return false;
+        return true;
+      })() : false,
+    },
   };
 
   const igualContraseña = form.confirmarContraseña === form.contraseña;
@@ -45,12 +68,15 @@ function Registro() {
   const contraseñaValida = Object.values(validaciones.contraseña).every(
     Boolean,
   );
-  const formularioValido = documentoValido && correoValido && contraseñaValida;
+  const fechaNacimientoValida = validaciones.fechaNacimiento.valida;
+  const formularioValido = documentoValido && correoValido && contraseñaValida && fechaNacimientoValida;
 
   const handleChange = (e) => {
     let value = e.target.value;
-    if (e.target.name === "documento") {
+    if (e.target.name === "documento" || e.target.name === "numeroContacto" || e.target.name === "numeroFijo") {
       value = value.replace(/\D/g, ""); // Solo permitir números
+    } else if (e.target.name === "nombres" || e.target.name === "apellidos") {
+      value = value.replace(/[<>]/g, ""); // Prevenir XSS mediante eliminación de tags
     }
 
     setForm({
@@ -82,7 +108,18 @@ function Registro() {
       correo: true,
       contraseña: true,
       confirmarContraseña: true,
+      fechaNacimiento: true,
+      tipoDocumento: true,
+      numeroContacto: true,
+      numeroFijo: true,
+      programaFormacion: true,
+      numeroFicha: true,
     });
+
+    if (!validaciones.fechaNacimiento.valida) {
+      showError("Error", "La fecha de nacimiento no es válida para el tipo de documento seleccionado");
+      return;
+    }
 
     if (!formularioValido) {
       showWarning(
@@ -107,36 +144,33 @@ function Registro() {
       birth_date: form.fechaNacimiento,
       email: form.correo,
       password: form.contraseña,
+      contact_number: form.numeroContacto,
+      landline_number: form.numeroFijo,
+      training_program: form.programaFormacion,
+      ficha_number: form.numeroFicha,
     };
 
     try {
-      const response = await fetch("http://localhost:5000/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(userData),
-      });
+      const data = await authApi.register(userData);
 
-      const data = await response.json();
-      if (response.ok) {
-        console.log(data);
-        showSuccess("¡Registro Exitoso!", "Tu cuenta ha sido creada correctamente.");
-        // Redirigir después de 2 segundos
-        setTimeout(() => {
-          navigate("/");
-        }, 2000);
-      } else {
-        if (response.status === 409) {
-          showError(
-            "Usuario ya registrado",
-            "El documento o correo electrónico que intentas registrar ya existe."
-          );
-        } else {
-          showError("Error", "❌ Error al registrar usuario");
-        }
-      }
+      console.log(data);
+      showSuccess("¡Registro Exitoso!", "Tu cuenta ha sido creada correctamente.");
+      // Redirigir después de 2 segundos
+      setTimeout(() => {
+        navigate("/");
+      }, 2000);
     } catch (error) {
       console.error("Error en la solicitud:", error);
-      showError("Error de conexión", "Error al conectar con el servidor");
+      if (error && error.status === 409) {
+        showError(
+          "Usuario ya registrado",
+          "El documento o correo electrónico que intentas registrar ya existe."
+        );
+      } else if (error && error.status === 0) {
+        showError("Error de conexión", "Error al conectar con el servidor");
+      } else {
+        showError("Error", error?.message || "❌ Error al registrar usuario");
+      }
     }
   };
 
@@ -251,6 +285,14 @@ function Registro() {
                     placeholder="dd/mm/aaaa"
                   />
                 </div>
+                {touched.fechaNacimiento && form.fechaNacimiento && (
+                  <div className="mt-1">
+                    <Regla
+                      ok={validaciones.fechaNacimiento.valida}
+                      texto="La edad debe corresponder al tipo de documento"
+                    />
+                  </div>
+                )}
               </div>
               <div className="col-md-6">
                 <label className="form-label text-muted small fw-bold">
@@ -279,7 +321,83 @@ function Registro() {
                 )}
               </div>
 
-              {/* Fila 4: Contraseñas */}
+              {/* Fila 4: Teléfonos */}
+              <div className="col-md-6">
+                <label className="form-label text-muted small fw-bold">
+                  Número de celular
+                </label>
+                <div className="input-group">
+                  <span className="input-group-text bg-transparent border-end-0 border-secondary-subtle">
+                    <i className="bi bi-telephone"></i>
+                  </span>
+                  <input
+                    type="tel"
+                    className="form-control border-start-0 border-secondary-subtle ps-0"
+                    name="numeroContacto"
+                    value={form.numeroContacto}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+              </div>
+              <div className="col-md-6">
+                <label className="form-label text-muted small fw-bold">
+                  Número fijo (Opcional)
+                </label>
+                <div className="input-group">
+                  <span className="input-group-text bg-transparent border-end-0 border-secondary-subtle">
+                    <i className="bi bi-telephone-fill"></i>
+                  </span>
+                  <input
+                    type="tel"
+                    className="form-control border-start-0 border-secondary-subtle ps-0"
+                    name="numeroFijo"
+                    value={form.numeroFijo || ""}
+                    onChange={handleChange}
+                  />
+                </div>
+              </div>
+
+              {/* Fila 5: Programa y Ficha */}
+              <div className="col-md-6">
+                <label className="form-label text-muted small fw-bold">
+                  Programa de formación
+                </label>
+                <select
+                  className="form-select border-secondary-subtle"
+                  name="programaFormacion"
+                  value={form.programaFormacion}
+                  onChange={handleChange}
+                  required
+                >
+                  <option value="" disabled>Seleccione un programa</option>
+                  <option value="ADSO">Analisis y Desarrollo de Software (ADSO)</option>
+                  <option value="MECATRONICA">Mecatrónica</option>
+                  <option value="TGS">Tecnólogo en Gestión de Empresas Agropecuarias (TGS)</option>
+                  <option value="QUIMICA">Química</option>
+                  <option value="TRF">Tecnólogo en Regencia de Farmacia (TRF)</option>
+                </select>
+              </div>
+              <div className="col-md-6">
+                <label className="form-label text-muted small fw-bold">
+                  Número de ficha
+                </label>
+                <div className="input-group">
+                  <span className="input-group-text bg-transparent border-end-0 border-secondary-subtle">
+                    <i className="bi bi-hash"></i>
+                  </span>
+                  <input
+                    type="text"
+                    className="form-control border-start-0 border-secondary-subtle ps-0"
+                    name="numeroFicha"
+                    value={form.numeroFicha}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Fila 7: Contraseñas */}
               <div className="col-md-6">
                 <label className="form-label text-muted small fw-bold">
                   Contraseña
