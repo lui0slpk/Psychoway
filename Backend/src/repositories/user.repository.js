@@ -56,17 +56,10 @@ export async function existsByDocumentOrEmailExcluding(document, email, excludeI
 export async function create(userData) {
   const { document, doc_type, names, last_names, birth_date, email, password, contact_number, landline_number, training_program, ficha_number, id_rol } = userData;
   const result = await execute(
-<<<<<<< HEAD
     `INSERT INTO users (document, doc_type, names, last_names, birth_date, email, password, contact_number, landline_number, training_program, ficha_number, id_rol, last_update)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW())
      RETURNING id_user`,
     [document, doc_type || null, names, last_names, birth_date, email, password, contact_number || null, landline_number || null, training_program || null, ficha_number || null, id_rol],
-=======
-    `INSERT INTO users (document, doc_type, names, last_names, birth_date, email, password, id_rol, last_update)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
-     RETURNING id_user`,
-    [document, doc_type || null, names, last_names, birth_date, email, password, id_rol],
->>>>>>> origin/main
   );
   return result.rows[0].id_user;
 }
@@ -103,17 +96,11 @@ export async function updateWithPassword(id, userData) {
   const { document, doc_type, names, last_names, birth_date, email, password, id_rol, profile_photo, contact_number, landline_number, training_program, ficha_number } = userData;
   const result = await execute(
     `UPDATE users SET document = $1, doc_type = $2, names = $3, last_names = $4, 
-<<<<<<< HEAD
      birth_date = $5, email = $6, password = $7, id_rol = $8, profile_photo = $9, 
      contact_number = $10, landline_number = $11, training_program = $12, ficha_number = $13, 
      last_update = NOW() 
      WHERE id_user = $14`,
     [document, doc_type || null, names, last_names, birth_date, email, password, id_rol, profile_photo !== undefined ? profile_photo : null, contact_number || null, landline_number || null, training_program || null, ficha_number || null, id],
-=======
-     birth_date = $5, email = $6, password = $7, id_rol = $8, profile_photo = $9, last_update = NOW() 
-     WHERE id_user = $10`,
-    [document, doc_type || null, names, last_names, birth_date, email, password, id_rol, profile_photo !== undefined ? profile_photo : null, id],
->>>>>>> origin/main
   );
   return result.rowCount > 0;
 }
@@ -125,17 +112,11 @@ export async function updateWithoutPassword(id, userData) {
   const { document, doc_type, names, last_names, birth_date, email, id_rol, profile_photo, contact_number, landline_number, training_program, ficha_number } = userData;
   const result = await execute(
     `UPDATE users SET document = $1, doc_type = $2, names = $3, last_names = $4, 
-<<<<<<< HEAD
      birth_date = $5, email = $6, id_rol = $7, profile_photo = $8, 
      contact_number = $9, landline_number = $10, training_program = $11, ficha_number = $12, 
      last_update = NOW() 
      WHERE id_user = $13`,
     [document, doc_type || null, names, last_names, birth_date, email, id_rol, profile_photo !== undefined ? profile_photo : null, contact_number || null, landline_number || null, training_program || null, ficha_number || null, id],
-=======
-     birth_date = $5, email = $6, id_rol = $7, profile_photo = $8, last_update = NOW() 
-     WHERE id_user = $9`,
-    [document, doc_type || null, names, last_names, birth_date, email, id_rol, profile_photo !== undefined ? profile_photo : null, id],
->>>>>>> origin/main
   );
   return result.rowCount > 0;
 }
@@ -175,7 +156,6 @@ export async function updateProfilePhoto(id, profilePhoto) {
 }
 
 export async function updateProfile(id, data) {
-<<<<<<< HEAD
   const { document, doc_type, names, last_names, birth_date, email, password, profile_photo, contact_number, landline_number, training_program, ficha_number } = data;
 
   let paramIndex = 1;
@@ -183,15 +163,6 @@ export async function updateProfile(id, data) {
   paramIndex = 11;
 
   let queryStr = `UPDATE users SET document = $1, doc_type = $2, names = $3, last_names = $4, birth_date = $5, email = $6, contact_number = $7, landline_number = $8, training_program = $9, ficha_number = $10`;
-=======
-  const { document, doc_type, names, last_names, birth_date, email, password, profile_photo } = data;
-
-  let paramIndex = 1;
-  const params = [document, doc_type || null, names, last_names, birth_date || null, email];
-  paramIndex = 7;
-
-  let queryStr = `UPDATE users SET document = $1, doc_type = $2, names = $3, last_names = $4, birth_date = $5, email = $6`;
->>>>>>> origin/main
 
   if (password) {
     queryStr += `, password = $${paramIndex}`;
