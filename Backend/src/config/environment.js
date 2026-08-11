@@ -1,6 +1,7 @@
 import dotenv from "dotenv";
 import { fileURLToPath } from "url";
 import path from "path";
+<<<<<<< HEAD
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -8,6 +9,15 @@ const __dirname = path.dirname(__filename);
 // Busca .env en la raíz del monorepo (3 niveles arriba de Backend/src/config/)
 dotenv.config();
 
+=======
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Busca .env en la raíz del monorepo (3 niveles arriba de Backend/src/config/)
+dotenv.config({ path: path.resolve(__dirname, "../../../.env") });
+
+>>>>>>> origin/main
 if (!process.env.JWT_SECRET) {
   throw new Error("FATAL: JWT_SECRET no está definido en las variables de entorno.");
 }

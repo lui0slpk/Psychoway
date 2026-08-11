@@ -10,8 +10,11 @@ import {
   DOC_TYPES,
   normalizeEmail,
   normalizeDocument,
+<<<<<<< HEAD
   normalizeText,
   normalizePhone,
+=======
+>>>>>>> origin/main
   isValidEmail,
   isValidDocument,
 } from "../utils/validators.js";
@@ -34,6 +37,22 @@ export async function register(userData) {
   const normalizedLastnames = normalizeText(last_names);
   const normalizedContactNumber = normalizePhone(contact_number);
   const normalizedLandlineNumber = normalizePhone(landline_number);
+
+  if (!DOC_TYPES.includes(doc_type)) {
+    throw { status: 400, message: `Tipo de documento inválido: ${doc_type}` };
+  }
+  if (!isValidEmail(normalizedEmail)) {
+    throw { status: 400, message: "El correo no es válido" };
+  }
+  if (!isValidDocument(normalizedDocument, doc_type)) {
+    throw { status: 400, message: "El documento no es válido para el tipo indicado" };
+  }
+
+  // Validar coherencia edad ↔ tipo de documento
+  validateAgeByDocType(doc_type, birth_date);
+
+  const normalizedEmail = normalizeEmail(email);
+  const normalizedDocument = normalizeDocument(document);
 
   if (!DOC_TYPES.includes(doc_type)) {
     throw { status: 400, message: `Tipo de documento inválido: ${doc_type}` };

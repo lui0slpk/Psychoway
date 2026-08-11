@@ -5,9 +5,11 @@ import { useAuth } from "../../context/AuthContext";
 import { motion } from "framer-motion";
 import { Calendar, Clock, Users, FileText, Search, Video, RefreshCw } from "lucide-react";
 import { showSuccess, showError, showWarning } from "../../utils/alerts";
+import meetingsApi from "../../api/meetings.api";
+import usersApi from "../../api/users.api";
 
 function PsiAgendaPage() {
-  const { user, authFetch } = useAuth();
+  const { user } = useAuth();
   const [formData, setFormData] = useState({ documentoAprendiz: "", dia: "", hora: "08:00", descripcion: "" });
   const [foundApprentice, setFoundApprentice] = useState(null);
   const [aprendizNombre, setAprendizNombre] = useState("No seleccionado");
@@ -21,12 +23,12 @@ function PsiAgendaPage() {
 
   const fetchHistory = React.useCallback(async () => {
     const pid = user.id || user.id_user;
-    try { const r = await authFetch(`http://localhost:5000/api/meetings/professional-history/${pid}`); setHistory(await r.json()); } catch (e) { console.error("Error:", e); }
+    try { setHistory(await meetingsApi.getProfessionalHistory(pid)); } catch (e) { console.error("Error:", e); }
   }, [user]);
 
   const fetchOccupiedSlots = React.useCallback(async () => {
     const pid = user.id || user.id_user;
-    try { const r = await authFetch(`http://localhost:5000/api/meetings/psychologist/${pid}`); setOccupiedSlots(await r.json()); } catch (e) { console.error("Error:", e); }
+    try { setOccupiedSlots(await meetingsApi.getByProfessional(pid)); } catch (e) { console.error("Error:", e); }
   }, [user]);
 
   useEffect(() => { if (user && (user.id || user.id_user)) { fetchHistory(); fetchOccupiedSlots(); } }, [user, fetchHistory, fetchOccupiedSlots]);
@@ -36,20 +38,18 @@ function PsiAgendaPage() {
   const handleBuscarAprendiz = async () => {
     if (!formData.documentoAprendiz) { showWarning("Aviso", "Ingresa un documento para buscar."); return; }
     try {
-      const r = await authFetch(`http://localhost:5000/api/users/search/${formData.documentoAprendiz}`);
-      const data = await r.json();
-      if (r.ok) {
-        setFoundApprentice(data);
-        setAprendizNombre(`${data.nombres} ${data.apellidos}`);
-        showSuccess("Aprendiz Encontrado", `${data.nombres} ${data.apellidos}`);
-      } else {
-        setFoundApprentice(null);
-        setAprendizNombre("No encontrado");
-        showError("Aviso", data.message || "Aprendiz no encontrado");
-      }
+      const data = await usersApi.search(formData.documentoAprendiz);
+      setFoundApprentice(data);
+      setAprendizNombre(`${data.nombres} ${data.apellidos}`);
+      showSuccess("Aprendiz Encontrado", `${data.nombres} ${data.apellidos}`);
     } catch (e) {
       console.error("Error:", e);
-      showError("Error", "Error al buscar aprendiz");
+      if (e.status === 0) showError("Error", "Error al buscar aprendiz");
+      else {
+        setFoundApprentice(null);
+        setAprendizNombre("No encontrado");
+        showError("Aviso", e.data?.message || "Aprendiz no encontrado");
+      }
     }
   };
 
@@ -58,11 +58,16 @@ function PsiAgendaPage() {
     if (!foundApprentice) { showWarning("Aviso", "Primero debes buscar y encontrar un aprendiz válido."); return; }
     const payload = { userId: foundApprentice.id_user, professionalId: user.id || user.id_user, day: formData.dia, hour: formData.hora, description: formData.descripcion };
     try {
-      const r = await authFetch("http://localhost:5000/api/meetings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-      const data = await r.json();
-      if (r.ok) { showSuccess("¡Éxito!", "¡Cita agendada con éxito!"); fetchHistory(); fetchOccupiedSlots(); setFormData({ ...formData, descripcion: "" }); }
-      else showError("Error", data.message || "Error al agendar cita.");
-    } catch (e) { console.error("Error:", e); showError("Error de conexión", "Error al conectar con el servidor."); }
+      await meetingsApi.create(payload);
+      showSuccess("¡Éxito!", "¡Cita agendada con éxito!");
+      fetchHistory();
+      fetchOccupiedSlots();
+      setFormData({ ...formData, descripcion: "" });
+    } catch (e) {
+      console.error("Error:", e);
+      if (e.status === 0) showError("Error de conexión", "Error al conectar con el servidor.");
+      else showError("Error", e.data?.message || "Error al agendar cita.");
+    }
   };
 
   const filteredSlots = occupiedSlots.filter(s => !buscarFecha || s.day.startsWith(buscarFecha));

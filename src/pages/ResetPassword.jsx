@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { showSuccess, showError } from "../utils/alerts";
+import authApi from "../api/auth.api";
 
 function ResetPassword() {
   const navigate = useNavigate();
@@ -80,37 +81,28 @@ function ResetPassword() {
     setLoading(true);
 
     try {
-      const response = await fetch("http://localhost:5000/api/password/reset", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          token: token,
-          newPassword: form.contraseña,
-        }),
-      });
+      await authApi.resetPassword(token, form.contraseña);
 
-      const data = await response.json();
-
-      if (response.ok) {
-        showSuccess(
-          "¡Contraseña Actualizada!",
-          "Tu contraseña ha sido restablecida correctamente. Redirigiendo al inicio de sesión..."
+      showSuccess(
+        "¡Contraseña Actualizada!",
+        "Tu contraseña ha sido restablecida correctamente. Redirigiendo al inicio de sesión..."
+      );
+      setTimeout(() => {
+        navigate("/");
+      }, 2500);
+    } catch (error) {
+      console.error("Error:", error);
+      if (error && error.status === 0) {
+        showError(
+          "Error de conexión",
+          "Error al conectar con el servidor. Asegúrate de que el backend esté corriendo."
         );
-        setTimeout(() => {
-          navigate("/");
-        }, 2500);
       } else {
         showError(
           "Error",
-          data.message || "Error al restablecer la contraseña."
+          (error && error.message) || "Error al restablecer la contraseña."
         );
       }
-    } catch (error) {
-      console.error("Error:", error);
-      showError(
-        "Error de conexión",
-        "Error al conectar con el servidor. Asegúrate de que el backend esté corriendo."
-      );
     } finally {
       setLoading(false);
     }

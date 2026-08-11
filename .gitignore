@@ -1,28 +1,72 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+# ==========================================
+# PSYCHOWAY - Configuración de Git Ignore
+# ==========================================
 
-# dependencies
-/node_modules
+# Dependencias (Dependencies)
+node_modules/
+**/node_modules/
 /.pnp
 .pnp.js
 
-# testing
-/coverage
-
-# production
-/build
-
-# misc
-.DS_Store
+# Variables de Entorno y Secretos (CRITICAL - Env & Secrets)
 .env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+.env.production
+.env.development
+.env.staging
+.env.test
+**/.env
+**/.env.local
+**/.env.development.local
+**/.env.test.local
+**/.env.production.local
+**/.env.production
+**/.env.development
+**/.env.staging
+**/.env.test
+**/*.env
+**/*.env.local
+!**/.env.example
 
-# Backend
-Backend/node_modules
-Backend/.env
+# Compilación y Salidas (Production & Build Outputs)
+/build
+/dist
+/out
+.next/
+.serverless/
 
+# Pruebas y Cobertura (Testing & Coverage)
+/coverage
+.nyc_output/
+
+# Logs y Archivos de Depuración (Logs)
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Editores e IDEs (Editor & IDE Settings)
+.vscode/
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+*.swo
+.project
+.classpath
+.settings/
+
+# Archivos del Sistema Operativo (OS Files)
+.DS_Store
+Thumbs.db
+desktop.ini
+Ehthumbs.db
+

@@ -5,16 +5,19 @@ import { useAuth } from "../../context/AuthContext";
 import { motion } from "framer-motion";
 import { Calendar, Clock, Users, FileText, CheckCircle, Video, Search, RefreshCw } from "lucide-react";
 import { showSuccess, showError, showWarning } from "../../utils/alerts";
+import meetingsApi from "../../api/meetings.api";
+import psychologistsApi from "../../api/psychologists.api";
 
 const WORKING_HOURS = ["08:00","09:00","10:00","11:00","13:00","14:00","15:00","16:00"];
 
 function AgendaPage() {
-  const { user, authFetch } = useAuth();
+  const { user } = useAuth();
   const [psychologists, setPsychologists] = useState([]);
   const [occupiedSlots, setOccupiedSlots] = useState([]);
   const [history, setHistory] = useState([]);
   const [searchPsychologist, setSearchPsychologist] = useState("");
   const [searchDate, setSearchDate] = useState("");
+  const todayStr = new Date().toISOString().split("T")[0];
   const [availableHours, setAvailableHours] = useState([]);
   const [formData, setFormData] = useState({ dia: "", hora: "", descripcion: "" });
 
@@ -22,21 +25,35 @@ function AgendaPage() {
   const iV = { hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0 } };
 
   const fetchPsychologists = React.useCallback(async () => {
-    try { const r = await authFetch("http://localhost:5000/api/psychologists"); setPsychologists(await r.json()); } catch (e) { console.error("Error:", e); }
+    try { setPsychologists(await psychologistsApi.getAll()); } catch (e) { console.error("Error:", e); }
   }, []);
 
   const fetchHistory = React.useCallback(async () => {
     if (!user) return;
-    try { const r = await authFetch(`http://localhost:5000/api/meetings/user/${user.id || user.id_user}`); setHistory(await r.json()); } catch (e) { console.error("Error:", e); }
+    try { setHistory(await meetingsApi.getByUser(user.id || user.id_user)); } catch (e) { console.error("Error:", e); }
   }, [user]);
 
   const fetchOccupiedSlots = React.useCallback(async (id) => {
-    try { const r = await authFetch(`http://localhost:5000/api/meetings/psychologist/${id}`); setOccupiedSlots(await r.json()); } catch (e) { console.error("Error:", e); }
+    try { setOccupiedSlots(await meetingsApi.getByProfessional(id)); } catch (e) { console.error("Error:", e); }
   }, []);
 
   const calculateAvailableHours = React.useCallback(() => {
     const busy = occupiedSlots.filter(s => s.day === searchDate).map(s => s.hour.substring(0, 5));
-    setAvailableHours(WORKING_HOURS.filter(h => !busy.includes(h)));
+
+    let hours = WORKING_HOURS.filter(h => !busy.includes(h));
+
+    // Si la fecha seleccionada es hoy, filtrar las horas que ya pasaron
+    const now = new Date();
+    const todayStr = now.toISOString().split("T")[0];
+    if (searchDate === todayStr) {
+      const currentMinutes = now.getHours() * 60 + now.getMinutes();
+      hours = hours.filter(h => {
+        const [hh, mm] = h.split(":").map(Number);
+        return (hh * 60 + mm) > currentMinutes;
+      });
+    }
+
+    setAvailableHours(hours);
   }, [occupiedSlots, searchDate]);
 
   useEffect(() => { fetchPsychologists(); if (user && (user.id || user.id_user)) fetchHistory(); }, [user, fetchPsychologists, fetchHistory]);
@@ -51,11 +68,16 @@ function AgendaPage() {
     if (!formData.dia || !formData.hora) { showWarning("Aviso", "Por favor asigna un horario disponible desde el panel derecho."); return; }
     const payload = { userId: user.id || user.id_user, professionalId: searchPsychologist, day: formData.dia, hour: formData.hora, description: formData.descripcion };
     try {
-      const r = await authFetch("http://localhost:5000/api/meetings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-      const data = await r.json();
-      if (r.ok) { showSuccess("¡Éxito!", "¡Cita agendada con éxito!"); fetchHistory(); fetchOccupiedSlots(searchPsychologist); setFormData({ dia: "", hora: "", descripcion: "" }); }
-      else showError("Error", data.message || "Error al agendar cita.");
-    } catch (error) { console.error("Error:", error); showError("Error de conexión", "Error al conectar con el servidor."); }
+      await meetingsApi.create(payload);
+      showSuccess("¡Éxito!", "¡Cita agendada con éxito!");
+      fetchHistory();
+      fetchOccupiedSlots(searchPsychologist);
+      setFormData({ dia: "", hora: "", descripcion: "" });
+    } catch (error) {
+      console.error("Error:", error);
+      if (error.status === 0) showError("Error de conexión", "Error al conectar con el servidor.");
+      else showError("Error", error.data?.message || "Error al agendar cita.");
+    }
   };
 
   const selPsych = psychologists.find(p => String(p.id_user) === String(searchPsychologist));
@@ -77,7 +99,7 @@ function AgendaPage() {
                 <div className="row mb-3">
                   <div className="col-md-6">
                     <label className="form-label small fw-semibold text-muted"><Calendar size={14} className="me-1" /> Día</label>
-                    <input type="date" className="form-control rounded-3 border-2 bg-light" value={formData.dia} readOnly />
+                    <input type="date" className="form-control rounded-3 border-2" value={searchDate} min={todayStr} onChange={e => setSearchDate(e.target.value)}/>
                   </div>
                   <div className="col-md-6">
                     <label className="form-label small fw-semibold text-muted"><Clock size={14} className="me-1" /> Hora</label>

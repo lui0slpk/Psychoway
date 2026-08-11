@@ -4,9 +4,7 @@ import { query, execute } from "../config/database.js";
  * Busca el diario de un usuario.
  */
 export async function findByUserId(userId) {
-  const rows = await query("SELECT id_diary FROM diary WHERE id_user = ?", [
-    userId,
-  ]);
+  const rows = await query("SELECT id_diary FROM diary WHERE id_user = $1", [userId]);
   return rows.length > 0 ? rows[0] : null;
 }
 
@@ -15,10 +13,10 @@ export async function findByUserId(userId) {
  */
 export async function create(userId) {
   const result = await execute(
-    "INSERT INTO diary (id_user, fecha) VALUES (?, CURDATE())",
+    "INSERT INTO diary (id_user, fecha) VALUES ($1, CURRENT_DATE) RETURNING id_diary",
     [userId],
   );
-  return result.insertId;
+  return result.rows[0].id_diary;
 }
 
 /**
@@ -26,10 +24,10 @@ export async function create(userId) {
  */
 export async function createWithVisibility(userId, visibility) {
   const result = await execute(
-    "INSERT INTO diary (id_user, fecha, diary_visibility) VALUES (?, CURDATE(), ?)",
+    "INSERT INTO diary (id_user, fecha, diary_visibility) VALUES ($1, CURRENT_DATE, $2) RETURNING id_diary",
     [userId, visibility],
   );
-  return result.insertId;
+  return result.rows[0].id_diary;
 }
 
 /**
@@ -38,10 +36,10 @@ export async function createWithVisibility(userId, visibility) {
 export async function createEntry(diaryId, description, emotionId, objectiveId = null) {
   const result = await execute(
     `INSERT INTO diary_entries (id_diary, entry_date, description, id_emotions, id_objetives)
-     VALUES (?, NOW(), ?, ?, ?)`,
+     VALUES ($1, NOW(), $2, $3, $4) RETURNING id_diary_entries`,
     [diaryId, description || null, emotionId, objectiveId],
   );
-  return result.insertId;
+  return result.rows[0].id_diary_entries;
 }
 
 /**
@@ -57,7 +55,7 @@ export async function getEntriesByUserId(userId) {
      INNER JOIN diary d ON de.id_diary = d.id_diary
      LEFT JOIN emotions e ON de.id_emotions = e.id_emotions
      LEFT JOIN objetivos o ON de.id_objetives = o.id_objetives
-     WHERE d.id_user = ?
+     WHERE d.id_user = $1
      ORDER BY de.entry_date DESC`,
     [userId],
   );
@@ -68,7 +66,7 @@ export async function getEntriesByUserId(userId) {
  */
 export async function getVisibility(userId) {
   const rows = await query(
-    "SELECT diary_visibility FROM diary WHERE id_user = ?",
+    "SELECT diary_visibility FROM diary WHERE id_user = $1",
     [userId],
   );
   return rows.length > 0 ? rows[0] : null;
@@ -79,10 +77,10 @@ export async function getVisibility(userId) {
  */
 export async function updateVisibility(userId, visibility) {
   const result = await execute(
-    "UPDATE diary SET diary_visibility = ? WHERE id_user = ?",
+    "UPDATE diary SET diary_visibility = $1 WHERE id_user = $2",
     [visibility, userId],
   );
-  return result.affectedRows > 0;
+  return result.rowCount > 0;
 }
 
 /**
@@ -94,8 +92,8 @@ export async function getRecentEntries(userId, limit = 5) {
      FROM diary_entries de
      JOIN diary d ON de.id_diary = d.id_diary
      JOIN emotions e ON de.id_emotions = e.id_emotions
-     WHERE d.id_user = ?
-     ORDER BY de.entry_date DESC LIMIT ?`,
+     WHERE d.id_user = $1
+     ORDER BY de.entry_date DESC LIMIT $2`,
     [userId, limit],
   );
 }
@@ -109,7 +107,7 @@ export async function getWeeklyEntries(userId) {
      FROM diary_entries de
      JOIN diary d ON de.id_diary = d.id_diary
      JOIN emotions e ON de.id_emotions = e.id_emotions
-     WHERE d.id_user = ? AND de.entry_date >= DATE_SUB(NOW(), INTERVAL 7 DAY)`,
+     WHERE d.id_user = $1 AND de.entry_date >= NOW() - INTERVAL '7 days'`,
     [userId],
   );
 }

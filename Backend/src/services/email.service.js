@@ -2,7 +2,8 @@ import nodemailer from "nodemailer";
 import env from "../config/environment.js";
 
 /**
- * Transporter configurado con Gmail SMTP.
+ * Transporter de email configurable via variables de entorno.
+ * Por defecto usa SendGrid (smtp.sendgrid.net:587).
  */
 const transporter = nodemailer.createTransport({
   host: env.EMAIL_HOST,
@@ -12,6 +13,8 @@ const transporter = nodemailer.createTransport({
     user: env.EMAIL_USER,
     pass: env.EMAIL_PASS,
   },
+  connectionTimeout: 30000,   // 30s — Render tarda en conectar en frío
+  greetingTimeout: 15000,     // 15s para el handshake SMTP
 });
 
 // Verificar conexión al iniciar

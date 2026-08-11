@@ -1,19 +1,22 @@
 import { API_URL } from "./config";
+import { request } from "./client";
 
 /**
- * Servicio de Notificaciones — centraliza llamadas al backend.
+ * Servicio de Notificaciones — centraliza llamadas al backend sobre el cliente
+ * HTTP compartido (Bearer automático + redirect 401). Sin parámetro authFetch.
+ * Paridad: Backend/src/routes/notifications.routes.js
+ * (GET /:userId, PUT /:id/read, POST /check-in) montado en routes/index.js L58
+ * detrás del middleware JWT de /api (L27).
  */
 const notificationsApi = {
-  getByUser: (authFetch, userId) =>
-    authFetch(`${API_URL}/notifications/${userId}`),
+  getByUser: (userId) => request(`${API_URL}/notifications/${userId}`),
 
-  markAsRead: (authFetch, id) =>
-    authFetch(`${API_URL}/notifications/${id}/read`, { method: "PUT" }),
+  markAsRead: (id) =>
+    request(`${API_URL}/notifications/${id}/read`, { method: "PUT" }),
 
-  checkIn: (authFetch, userId) =>
-    authFetch(`${API_URL}/notifications/check-in`, {
+  checkIn: (userId) =>
+    request(`${API_URL}/notifications/check-in`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ userId }),
     }),
 };

@@ -5,8 +5,11 @@ import {
   DOC_TYPES,
   normalizeEmail,
   normalizeDocument,
+<<<<<<< HEAD
   normalizeText,
   normalizePhone,
+=======
+>>>>>>> origin/main
   isValidEmail,
   isValidDocument,
 } from "../utils/validators.js";
@@ -60,10 +63,13 @@ export async function create(userData) {
 
   const normalizedEmail = normalizeEmail(correo);
   const normalizedDocument = normalizeDocument(documento);
+<<<<<<< HEAD
   const normalizedNames = normalizeText(nombres);
   const normalizedLastnames = normalizeText(apellidos);
   const normalizedContactNumber = normalizePhone(numeroContacto);
   const normalizedLandlineNumber = normalizePhone(numeroFijo);
+=======
+>>>>>>> origin/main
 
   if (!DOC_TYPES.includes(tipoDocumento)) {
     throw { status: 400, message: `Tipo de documento inválido: ${tipoDocumento}` };
@@ -159,10 +165,13 @@ export async function update(id, userData) {
 
   const normalizedEmail = normalizeEmail(correo);
   const normalizedDocument = normalizeDocument(documento);
+<<<<<<< HEAD
   const normalizedNames = normalizeText(nombres);
   const normalizedLastnames = normalizeText(apellidos);
   const normalizedContactNumber = normalizePhone(numeroContacto);
   const normalizedLandlineNumber = normalizePhone(numeroFijo);
+=======
+>>>>>>> origin/main
 
   if (!DOC_TYPES.includes(tipoDocumento)) {
     throw { status: 400, message: `Tipo de documento inválido: ${tipoDocumento}` };
@@ -213,10 +222,13 @@ export async function update(id, userData) {
       last_names: normalizedLastnames,
       birth_date: fechaNacimiento,
       email: normalizedEmail,
+<<<<<<< HEAD
       contact_number: normalizedContactNumber,
       landline_number: normalizedLandlineNumber,
       training_program: programaFormacion,
       ficha_number: numeroFicha,
+=======
+>>>>>>> origin/main
       id_rol: idRol,
     });
   }
@@ -277,10 +289,13 @@ export async function updateProfile(id, userData) {
     last_names: normalizeText(apellidos || currentUser.last_names),
     birth_date: fechaNacimiento || currentUser.birth_date,
     email: normalizeEmail(correo || currentUser.email),
+<<<<<<< HEAD
     contact_number: normalizePhone(numeroContacto || currentUser.contact_number),
     landline_number: normalizePhone(numeroFijo || currentUser.landline_number),
     training_program: programaFormacion || currentUser.training_program,
     ficha_number: numeroFicha || currentUser.ficha_number,
+=======
+>>>>>>> origin/main
     id_rol: currentUser.id_rol,
     profile_photo: profilePhoto !== undefined ? profilePhoto : currentUser.profile_photo,
   };

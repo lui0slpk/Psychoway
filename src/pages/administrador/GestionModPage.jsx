@@ -3,11 +3,10 @@ import { Link } from "react-router-dom";
 import MainLayout from "../../layouts/MainLayout";
 import { motion } from "framer-motion";
 import { UserPlus, Edit3, Search, Eye, EyeOff, Save, Trash2 } from "lucide-react";
-import { useAuth } from "../../context/AuthContext";
+import usersApi from "../../api/users.api";
 import { showSuccess, showError, showWarning, showConfirm } from "../../utils/alerts";
 
 function GestionModPage() {
-  const { authFetch } = useAuth();
   const [buscarDocumento, setBuscarDocumento] = useState("");
   const [usuarioEncontrado, setUsuarioEncontrado] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -23,9 +22,22 @@ function GestionModPage() {
       tieneMinuscula: formData.password ? /[a-z]/.test(formData.password) : true, tieneNumero: formData.password ? /[0-9]/.test(formData.password) : true,
       tieneEspecial: formData.password ? /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(formData.password) : true,
     },
+    fechaNacimiento: {
+      valida: formData.fechaNacimiento && formData.tipoDocumento ? (() => {
+        const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+        const nac = new Date(formData.fechaNacimiento);
+        let edad = hoy.getFullYear() - nac.getFullYear();
+        const m = hoy.getMonth() - nac.getMonth();
+        if (m < 0 || (m === 0 && hoy.getDate() < nac.getDate())) edad--;
+        if ((formData.tipoDocumento === "CC" || formData.tipoDocumento === "CE") && edad < 18) return false;
+        if (formData.tipoDocumento === "TI" && edad >= 18) return false;
+        return true;
+      })() : true,
+    },
   };
   const documentoValido = Object.values(validaciones.documento).every(Boolean);
   const passwordValida = Object.values(validaciones.password).every(Boolean);
+  const fechaValida = validaciones.fechaNacimiento.valida;
   const Regla = ({ ok, texto }) => (<span style={{ display: "block", fontSize: "13px", color: ok ? "#005222" : "#dc3545" }}>{ok ? "✅" : "❌"} {texto}</span>);
 
   const cV = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.5, staggerChildren: 0.1 } } };
@@ -34,28 +46,28 @@ function GestionModPage() {
   const handleBuscar = async () => {
     if (!buscarDocumento) { showWarning("Aviso", "Por favor ingrese un número de documento"); return; }
     try {
-      const response = await authFetch(`http://localhost:5000/api/users/search/${buscarDocumento}`);
-      if (!response.ok) {
-        if (response.status === 404) {
-          const ct = response.headers.get("content-type");
-          if (ct && ct.indexOf("application/json") !== -1) {
-            const d = await response.json();
-            showError("Aviso", d.message || "Usuario no encontrado");
-          } else {
-            showError("Aviso", "Error 404: El servicio no responde. Reinicia el backend.");
-          }
-        } else {
-          showError("Error", `Error del servidor: ${response.status}`);
-        }
-        setUsuarioEncontrado(false); setUserId(null); return;
-      }
-      const data = await response.json();
+      const data = await usersApi.search(buscarDocumento);
       setUsuarioEncontrado(true); setUserId(data.id_user);
       showSuccess("¡Usuario Encontrado!", "Datos cargados.");
       setFormData({ rol: data.rol || "", documento: data.document || "", tipoDocumento: data.tipoDocumento || "", nombres: data.nombres || "", apellidos: data.apellidos || "", fechaNacimiento: data.fechaNacimiento || "", correo: data.correo || "", numeroContacto: data.contact_number || "", numeroFijo: data.landline_number || "", programaFormacion: data.training_program || "", numeroFicha: data.ficha_number || "", password: "", confirmPassword: "" });
     } catch (error) {
-      console.error("Error:", error);
-      showError("Error de conexión", "Error de conexión con el backend.");
+      if (error.status === 404) {
+        // Paridad del caso especial: el 404 puede venir con cuerpo JSON (backend,
+        // "Usuario no encontrado") o no JSON (servicio caído). El cliente parsea
+        // JSON → objeto; HTML/texto → string crudo. Mismas cadenas visibles que antes.
+        if (error.data && typeof error.data === "object") {
+          showError("Aviso", error.data.message || "Usuario no encontrado");
+        } else {
+          showError("Aviso", "Error 404: El servicio no responde. Reinicia el backend.");
+        }
+        setUsuarioEncontrado(false); setUserId(null);
+      } else if (error.status) {
+        showError("Error", `Error del servidor: ${error.status}`);
+        setUsuarioEncontrado(false); setUserId(null);
+      } else {
+        console.error("Error:", error);
+        showError("Error de conexión", "Error de conexión con el backend.");
+      }
     }
   };
 
@@ -71,28 +83,31 @@ function GestionModPage() {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault(); setTouched({ documento: true, password: true });
+    e.preventDefault(); setTouched({ documento: true, password: true, fechaNacimiento: true });
     if (!documentoValido || (formData.password && !passwordValida)) { showWarning("Aviso", "Corrige los errores."); return; }
+    if (!fechaValida) { showError("Fecha inválida", "La fecha de nacimiento no corresponde al tipo de documento seleccionado."); return; }
     if (formData.password && formData.password !== formData.confirmPassword) { showError("Error", "Las contraseñas no coinciden"); return; }
     try {
-      const r = await authFetch(`http://localhost:5000/api/users/update/${userId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(formData) });
-      const data = await r.json();
-      if (r.ok) {
-        showSuccess("¡Usuario Actualizado!", "Datos actualizados.");
-        setUsuarioEncontrado(false); setBuscarDocumento("");
-      } else showError("Error", `Error: ${data.message}`);
-    } catch (e) { console.error("Error:", e); showError("Error de conexión", "Error al conectar con el servidor"); }
+      await usersApi.update(userId, formData);
+      showSuccess("¡Usuario Actualizado!", "Datos actualizados.");
+      setUsuarioEncontrado(false); setBuscarDocumento("");
+    } catch (e) {
+      if (e.status) {
+        showError("Error", `Error: ${e.data?.message}`);
+      } else { console.error("Error:", e); showError("Error de conexión", "Error al conectar con el servidor"); }
+    }
   };
 
   const executeDelete = async () => {
     try {
-      const r = await authFetch(`http://localhost:5000/api/users/delete/${userId}`, { method: "DELETE" });
-      const data = await r.json();
-      if (r.ok) {
-        showSuccess("¡Usuario Eliminado!", "Cuenta eliminada.");
-        setUsuarioEncontrado(false); setBuscarDocumento(""); setUserId(null);
-      } else showError("Error", `Error: ${data.message}`);
-    } catch (e) { console.error("Error:", e); showError("Error de conexión", "Error al conectar"); }
+      await usersApi.remove(userId);
+      showSuccess("¡Usuario Eliminado!", "Cuenta eliminada.");
+      setUsuarioEncontrado(false); setBuscarDocumento(""); setUserId(null);
+    } catch (e) {
+      if (e.status) {
+        showError("Error", `Error: ${e.data?.message}`);
+      } else { console.error("Error:", e); showError("Error de conexión", "Error al conectar"); }
+    }
   };
 
   const handleDeleteClick = async () => {
@@ -142,7 +157,11 @@ function GestionModPage() {
                     <div className="col-md-6"><label className="form-label small fw-semibold">Nombres</label><input type="text" className="form-control rounded-3 border-2" id="nombres" value={formData.nombres} onChange={handleChange} required /></div>
                     <div className="col-md-6"><label className="form-label small fw-semibold">Apellidos</label><input type="text" className="form-control rounded-3 border-2" id="apellidos" value={formData.apellidos} onChange={handleChange} required /></div>
                   </div>
-                  <div className="mb-3"><label className="form-label small fw-semibold">Fecha de nacimiento</label><input type="date" className="form-control rounded-3 border-2" id="fechaNacimiento" value={formData.fechaNacimiento} onChange={handleChange} required /></div>
+                  <div className="mb-3"><label className="form-label small fw-semibold">Fecha de nacimiento</label><input type="date" className="form-control rounded-3 border-2" id="fechaNacimiento" value={formData.fechaNacimiento} onChange={handleChange} required />
+                    {touched.fechaNacimiento && formData.fechaNacimiento && (
+                      <div className="mt-1"><Regla ok={validaciones.fechaNacimiento.valida} texto="La edad debe corresponder al tipo de documento" /></div>
+                    )}
+                  </div>
                   <div className="mb-3"><label className="form-label small fw-semibold">Correo</label><input type="email" className="form-control rounded-3 border-2" id="correo" value={formData.correo} onChange={handleChange} required /></div>
                   {(formData.rol === "aprendiz" || formData.rol === "psicologo" || formData.rol === "administrador") && formData.rol !== "" && (
                     <div className="row mb-3">

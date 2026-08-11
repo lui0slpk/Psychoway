@@ -1,4 +1,5 @@
 import * as usersService from "../services/users.service.js";
+import { assertOwnProfile } from "../middlewares/auth.middleware.js";
 
 export async function create(req, res, next) {
   try {
@@ -47,6 +48,7 @@ export async function getPsychologists(req, res, next) {
 
 export async function updateProfile(req, res, next) {
   try {
+    assertOwnProfile(req, req.params.id);
     const result = await usersService.updateProfile(req.params.id, req.body);
     res.status(200).json(result);
   } catch (error) {
@@ -56,6 +58,7 @@ export async function updateProfile(req, res, next) {
 
 export async function updateProfilePhoto(req, res, next) {
   try {
+    assertOwnProfile(req, req.params.id);
     const { profilePhoto } = req.body;
     const result = await usersService.updateProfilePhoto(req.params.id, profilePhoto);
     res.status(200).json(result);
@@ -66,6 +69,7 @@ export async function updateProfilePhoto(req, res, next) {
 
 export async function getProfilePhoto(req, res, next) {
   try {
+    assertOwnProfile(req, req.params.id);
     const result = await usersService.getProfilePhoto(req.params.id);
     res.status(200).json(result);
   } catch (error) {
@@ -75,6 +79,7 @@ export async function getProfilePhoto(req, res, next) {
 
 export async function getProfile(req, res, next) {
   try {
+    assertOwnProfile(req, req.params.id);
     const result = await usersService.getFullProfile(req.params.id);
     res.status(200).json(result);
   } catch (error) {

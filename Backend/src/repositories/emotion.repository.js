@@ -5,7 +5,7 @@ import { query, execute } from "../config/database.js";
  */
 export async function findByName(name) {
   const rows = await query(
-    "SELECT id_emotions FROM emotions WHERE emot_name = ?",
+    "SELECT id_emotions FROM emotions WHERE emot_name = $1",
     [name],
   );
   return rows.length > 0 ? rows[0] : null;
@@ -16,10 +16,10 @@ export async function findByName(name) {
  */
 export async function create(name, state) {
   const result = await execute(
-    "INSERT INTO emotions (emot_name, emot_estado) VALUES (?, ?)",
+    "INSERT INTO emotions (emot_name, emot_estado) VALUES ($1, $2) RETURNING id_emotions",
     [name, state],
   );
-  return result.insertId;
+  return result.rows[0].id_emotions;
 }
 
 /**
