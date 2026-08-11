@@ -63,11 +63,7 @@ function GestionPage() {
     try {
       await usersApi.create(formData);
       showSuccess("¡Registro Exitoso!", "El usuario ha sido creado correctamente.");
-<<<<<<< HEAD
       setFormData({ rol: "", documento: "", tipoDocumento: "", nombres: "", apellidos: "", fechaNacimiento: "", correo: "", password: "", numeroContacto: "", numeroFijo: "", programaFormacion: "", numeroFicha: "" }); setTouched({});
-=======
-      setFormData({ rol: "", documento: "", tipoDocumento: "", nombres: "", apellidos: "", fechaNacimiento: "", correo: "", password: "" }); setTouched({});
->>>>>>> origin/main
     } catch (error) {
       if (error.status) {
         showError("Error", error.data?.message || "Error al crear usuario");
