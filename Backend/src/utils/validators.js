@@ -15,6 +15,22 @@ export function normalizeEmail(email) {
 }
 
 /**
+ * Normaliza textos (ej. nombres): recorta espacios y quita caracteres peligrosos (<, >) para evitar XSS.
+ */
+export function normalizeText(text) {
+  if (!text) return "";
+  return String(text).replace(/[<>]/g, "").trim();
+}
+
+/**
+ * Normaliza teléfonos: quita cualquier carácter que no sea numérico.
+ */
+export function normalizePhone(phone) {
+  if (!phone) return null;
+  return String(phone).replace(/\D/g, "");
+}
+
+/**
  * Valida el formato básico de un correo.
  */
 export function isValidEmail(email) {

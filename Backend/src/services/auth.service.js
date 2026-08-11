@@ -10,6 +10,11 @@ import {
   DOC_TYPES,
   normalizeEmail,
   normalizeDocument,
+<<<<<<< HEAD
+  normalizeText,
+  normalizePhone,
+=======
+>>>>>>> origin/main
   isValidEmail,
   isValidDocument,
 } from "../utils/validators.js";
@@ -24,7 +29,27 @@ const resetTokens = new Map();
  * Registra un nuevo usuario.
  */
 export async function register(userData) {
-  const { document, doc_type, names, last_names, birth_date, email, password } = userData;
+  const { document, doc_type, names, last_names, birth_date, email, password, contact_number, landline_number, training_program, ficha_number } = userData;
+
+  const normalizedEmail = normalizeEmail(email);
+  const normalizedDocument = normalizeDocument(document);
+  const normalizedNames = normalizeText(names);
+  const normalizedLastnames = normalizeText(last_names);
+  const normalizedContactNumber = normalizePhone(contact_number);
+  const normalizedLandlineNumber = normalizePhone(landline_number);
+
+  if (!DOC_TYPES.includes(doc_type)) {
+    throw { status: 400, message: `Tipo de documento inválido: ${doc_type}` };
+  }
+  if (!isValidEmail(normalizedEmail)) {
+    throw { status: 400, message: "El correo no es válido" };
+  }
+  if (!isValidDocument(normalizedDocument, doc_type)) {
+    throw { status: 400, message: "El documento no es válido para el tipo indicado" };
+  }
+
+  // Validar coherencia edad ↔ tipo de documento
+  validateAgeByDocType(doc_type, birth_date);
 
   const normalizedEmail = normalizeEmail(email);
   const normalizedDocument = normalizeDocument(document);
@@ -54,11 +79,15 @@ export async function register(userData) {
     await userRepo.create({
       document: normalizedDocument,
       doc_type,
-      names,
-      last_names,
+      names: normalizedNames,
+      last_names: normalizedLastnames,
       birth_date,
       email: normalizedEmail,
       password: hashedPassword,
+      contact_number: normalizedContactNumber,
+      landline_number: normalizedLandlineNumber,
+      training_program,
+      ficha_number,
       id_rol: 1, // Aprendiz por defecto
     });
 

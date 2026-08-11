@@ -5,6 +5,11 @@ import {
   DOC_TYPES,
   normalizeEmail,
   normalizeDocument,
+<<<<<<< HEAD
+  normalizeText,
+  normalizePhone,
+=======
+>>>>>>> origin/main
   isValidEmail,
   isValidDocument,
 } from "../utils/validators.js";
@@ -49,7 +54,7 @@ export function validateAgeByDocType(docType, birthDate) {
  * Crea un nuevo usuario (desde panel de admin).
  */
 export async function create(userData) {
-  const { rol, documento, tipoDocumento, nombres, apellidos, fechaNacimiento, correo, password } =
+  const { rol, documento, tipoDocumento, nombres, apellidos, fechaNacimiento, correo, password, numeroContacto, numeroFijo, programaFormacion, numeroFicha } =
     userData;
 
   if (!documento || !nombres || !apellidos || !correo || !password || !rol) {
@@ -58,6 +63,13 @@ export async function create(userData) {
 
   const normalizedEmail = normalizeEmail(correo);
   const normalizedDocument = normalizeDocument(documento);
+<<<<<<< HEAD
+  const normalizedNames = normalizeText(nombres);
+  const normalizedLastnames = normalizeText(apellidos);
+  const normalizedContactNumber = normalizePhone(numeroContacto);
+  const normalizedLandlineNumber = normalizePhone(numeroFijo);
+=======
+>>>>>>> origin/main
 
   if (!DOC_TYPES.includes(tipoDocumento)) {
     throw { status: 400, message: `Tipo de documento inválido: ${tipoDocumento}` };
@@ -85,11 +97,15 @@ export async function create(userData) {
     const userId = await userRepo.create({
       document: normalizedDocument,
       doc_type: tipoDocumento,
-      names: nombres,
-      last_names: apellidos,
+      names: normalizedNames,
+      last_names: normalizedLastnames,
       birth_date: fechaNacimiento,
       email: normalizedEmail,
       password: hashedPassword,
+      contact_number: normalizedContactNumber,
+      landline_number: normalizedLandlineNumber,
+      training_program: programaFormacion,
+      ficha_number: numeroFicha,
       id_rol: idRol,
     });
 
@@ -128,6 +144,10 @@ export async function searchByDocument(document) {
       ? new Date(user.birth_date).toISOString().split("T")[0]
       : "",
     correo: user.email,
+    contact_number: user.contact_number || "",
+    landline_number: user.landline_number || "",
+    training_program: user.training_program || "",
+    ficha_number: user.ficha_number || "",
   };
 }
 
@@ -135,7 +155,7 @@ export async function searchByDocument(document) {
  * Actualiza un usuario.
  */
 export async function update(id, userData) {
-  const { rol, documento, tipoDocumento, nombres, apellidos, fechaNacimiento, correo, password } =
+  const { rol, documento, tipoDocumento, nombres, apellidos, fechaNacimiento, correo, password, numeroContacto, numeroFijo, programaFormacion, numeroFicha } =
     userData;
 
   const idRol = ROLE_IDS[(rol || "").toLowerCase()];
@@ -145,6 +165,13 @@ export async function update(id, userData) {
 
   const normalizedEmail = normalizeEmail(correo);
   const normalizedDocument = normalizeDocument(documento);
+<<<<<<< HEAD
+  const normalizedNames = normalizeText(nombres);
+  const normalizedLastnames = normalizeText(apellidos);
+  const normalizedContactNumber = normalizePhone(numeroContacto);
+  const normalizedLandlineNumber = normalizePhone(numeroFijo);
+=======
+>>>>>>> origin/main
 
   if (!DOC_TYPES.includes(tipoDocumento)) {
     throw { status: 400, message: `Tipo de documento inválido: ${tipoDocumento}` };
@@ -176,21 +203,32 @@ export async function update(id, userData) {
     updated = await userRepo.updateWithPassword(id, {
       document: normalizedDocument,
       doc_type: tipoDocumento,
-      names: nombres,
-      last_names: apellidos,
+      names: normalizedNames,
+      last_names: normalizedLastnames,
       birth_date: fechaNacimiento,
       email: normalizedEmail,
       password: hashedPassword,
+      contact_number: normalizedContactNumber,
+      landline_number: normalizedLandlineNumber,
+      training_program: programaFormacion,
+      ficha_number: numeroFicha,
       id_rol: idRol,
     });
   } else {
     updated = await userRepo.updateWithoutPassword(id, {
       document: normalizedDocument,
       doc_type: tipoDocumento,
-      names: nombres,
-      last_names: apellidos,
+      names: normalizedNames,
+      last_names: normalizedLastnames,
       birth_date: fechaNacimiento,
       email: normalizedEmail,
+<<<<<<< HEAD
+      contact_number: normalizedContactNumber,
+      landline_number: normalizedLandlineNumber,
+      training_program: programaFormacion,
+      ficha_number: numeroFicha,
+=======
+>>>>>>> origin/main
       id_rol: idRol,
     });
   }
@@ -236,7 +274,7 @@ export async function getPsychologists() {
  * Actualiza el perfil del usuario autenticado (sin cambiar rol).
  */
 export async function updateProfile(id, userData) {
-  const { documento, tipoDocumento, nombres, apellidos, fechaNacimiento, correo, password, profilePhoto } = userData;
+  const { documento, tipoDocumento, nombres, apellidos, fechaNacimiento, correo, password, profilePhoto, numeroContacto, numeroFijo, programaFormacion, numeroFicha } = userData;
 
   // Obtener el usuario actual para mantener su rol
   const currentUser = await userRepo.findById(id);
@@ -247,10 +285,17 @@ export async function updateProfile(id, userData) {
   const updateData = {
     document: normalizeDocument(documento || currentUser.document),
     doc_type: tipoDocumento || currentUser.doc_type,
-    names: nombres || currentUser.names,
-    last_names: apellidos || currentUser.last_names,
+    names: normalizeText(nombres || currentUser.names),
+    last_names: normalizeText(apellidos || currentUser.last_names),
     birth_date: fechaNacimiento || currentUser.birth_date,
     email: normalizeEmail(correo || currentUser.email),
+<<<<<<< HEAD
+    contact_number: normalizePhone(numeroContacto || currentUser.contact_number),
+    landline_number: normalizePhone(numeroFijo || currentUser.landline_number),
+    training_program: programaFormacion || currentUser.training_program,
+    ficha_number: numeroFicha || currentUser.ficha_number,
+=======
+>>>>>>> origin/main
     id_rol: currentUser.id_rol,
     profile_photo: profilePhoto !== undefined ? profilePhoto : currentUser.profile_photo,
   };
