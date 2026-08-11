@@ -24,6 +24,12 @@ const meetingsApi = {
 
   getProfessionalHistory: (id) =>
     request(`${API_URL}/meetings/professional-history/${id}`),
+
+  updateAttendance: (id, asistencia) =>
+    request(`${API_URL}/meetings/${id}/attendance`, {
+      method: "PATCH",
+      body: JSON.stringify({ asistencia }),
+    }),
 };
 
 export default meetingsApi;
