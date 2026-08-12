@@ -9,7 +9,7 @@ import { showSuccess, showError, showWarning } from "../../utils/alerts";
 function GestionPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [touched, setTouched] = useState({});
-  const [formData, setFormData] = useState({ rol: "", documento: "", tipoDocumento: "", nombres: "", apellidos: "", fechaNacimiento: "", correo: "", password: "" });
+  const [formData, setFormData] = useState({ rol: "", documento: "", tipoDocumento: "", nombres: "", apellidos: "", fechaNacimiento: "", correo: "", password: "", numeroContacto: "", numeroFijo: "", programaFormacion: "", numeroFicha: "" });
 
   const validaciones = {
     documento: { longitud: formData.documento.length >= 8 && formData.documento.length <= 10 },
@@ -39,7 +39,11 @@ function GestionPage() {
 
   const handleChange = (e) => {
     let value = e.target.value;
-    if (e.target.id === "documento") value = value.replace(/\D/g, "");
+    if (e.target.id === "documento" || e.target.id === "numeroContacto" || e.target.id === "numeroFijo") {
+      value = value.replace(/\D/g, "");
+    } else if (e.target.id === "nombres" || e.target.id === "apellidos") {
+      value = value.replace(/[<>]/g, ""); // Prevent XSS
+    }
     setFormData({ ...formData, [e.target.id]: value }); setTouched({ ...touched, [e.target.id]: true });
   };
 
@@ -59,7 +63,7 @@ function GestionPage() {
     try {
       await usersApi.create(formData);
       showSuccess("¡Registro Exitoso!", "El usuario ha sido creado correctamente.");
-      setFormData({ rol: "", documento: "", tipoDocumento: "", nombres: "", apellidos: "", fechaNacimiento: "", correo: "", password: "" }); setTouched({});
+      setFormData({ rol: "", documento: "", tipoDocumento: "", nombres: "", apellidos: "", fechaNacimiento: "", correo: "", password: "", numeroContacto: "", numeroFijo: "", programaFormacion: "", numeroFicha: "" }); setTouched({});
     } catch (error) {
       if (error.status) {
         showError("Error", error.data?.message || "Error al crear usuario");
@@ -118,6 +122,37 @@ function GestionPage() {
                   <label className="form-label small fw-semibold">Correo <span className="text-danger">*</span></label>
                   <input type="email" className="form-control rounded-3 border-2" id="correo" placeholder="psychoway66@gmail.com" value={formData.correo} onChange={handleChange} required />
                 </div>
+                {(formData.rol === "aprendiz" || formData.rol === "psicologo" || formData.rol === "administrador") && formData.rol !== "" && (
+                  <div className="row mb-3">
+                    <div className="col-md-6">
+                      <label className="form-label small fw-semibold">Número de celular <span className="text-danger">*</span></label>
+                      <input type="tel" className="form-control rounded-3 border-2" id="numeroContacto" placeholder="3001234567" value={formData.numeroContacto} onChange={handleChange} required />
+                    </div>
+                    <div className="col-md-6">
+                      <label className="form-label small fw-semibold">Número fijo (Opcional)</label>
+                      <input type="tel" className="form-control rounded-3 border-2" id="numeroFijo" placeholder="6041234567" value={formData.numeroFijo} onChange={handleChange} />
+                    </div>
+                  </div>
+                )}
+                {formData.rol === "aprendiz" && (
+                  <div className="row mb-3">
+                    <div className="col-md-6">
+                      <label className="form-label small fw-semibold">Programa de formación <span className="text-danger">*</span></label>
+                      <select className="form-select rounded-3 border-2" id="programaFormacion" value={formData.programaFormacion} onChange={handleChange} required>
+                        <option value="" disabled>Seleccione un programa</option>
+                        <option value="ADSO">Analisis y Desarrollo de Software (ADSO)</option>
+                        <option value="MECATRONICA">Mecatrónica</option>
+                        <option value="TGS">Tecnólogo en Gestión de Empresas Agropecuarias (TGS)</option>
+                        <option value="QUIMICA">Química</option>
+                        <option value="TRF">Tecnólogo en Regencia de Farmacia (TRF)</option>
+                      </select>
+                    </div>
+                    <div className="col-md-6">
+                      <label className="form-label small fw-semibold">Número de ficha <span className="text-danger">*</span></label>
+                      <input type="text" className="form-control rounded-3 border-2" id="numeroFicha" placeholder="255678" value={formData.numeroFicha} onChange={handleChange} required />
+                    </div>
+                  </div>
+                )}
                 <div className="mb-4">
                   <label className="form-label small fw-semibold">Contraseña <span className="text-danger">*</span></label>
                   <div className="input-group">

@@ -3,7 +3,7 @@ import MainLayout from "../../layouts/MainLayout";
 import meetImg from "../../assets/img/meet.png";
 import { useAuth } from "../../context/AuthContext";
 import { motion } from "framer-motion";
-import { Calendar, Clock, Users, FileText, Search, Video, RefreshCw } from "lucide-react";
+import { Calendar, Clock, Users, FileText, Search, Video, RefreshCw, Check, X } from "lucide-react";
 import { showSuccess, showError, showWarning } from "../../utils/alerts";
 import meetingsApi from "../../api/meetings.api";
 import usersApi from "../../api/users.api";
@@ -32,6 +32,28 @@ function PsiAgendaPage() {
   }, [user]);
 
   useEffect(() => { if (user && (user.id || user.id_user)) { fetchHistory(); fetchOccupiedSlots(); } }, [user, fetchHistory, fetchOccupiedSlots]);
+
+  const getMeetingDate = (item) => {
+    if (!item.day || !item.hour) return new Date();
+    const [year, month, day] = item.day.split("-").map(Number);
+    const [hours, minutes] = item.hour.split(":").map(Number);
+    return new Date(year, month - 1, day, hours, minutes);
+  };
+
+  const handleAttendance = async (meetingId, status) => {
+    try {
+      await meetingsApi.updateAttendance(meetingId, status);
+      showSuccess("Asistencia Actualizada", `El estado ha sido cambiado a: ${status === "asistio" ? "Asistió" : "No asistió"}`);
+      fetchHistory();
+    } catch (e) {
+      console.error("Error updating attendance:", e);
+      showError("Error", e.data?.message || "No se pudo actualizar la asistencia.");
+    }
+  };
+
+  const now = new Date();
+  const pendingMeetings = history.filter(item => getMeetingDate(item) >= now);
+  const pastMeetings = history.filter(item => getMeetingDate(item) < now);
 
   const handleChange = (e) => setFormData({ ...formData, [e.target.id]: e.target.value });
 
@@ -141,18 +163,19 @@ function PsiAgendaPage() {
           </motion.div>
         </div>
 
+        {/* Sección 1: Citas Pendientes */}
         <motion.div className="row g-4 mt-2" variants={iV}>
           <div className="col-12">
             <div className="card border-0 shadow-sm rounded-4 p-4">
               <div className="d-flex justify-content-between align-items-center mb-3">
-                <h5 className="mb-0 fs-5 d-flex align-items-center gap-2"><Clock size={20} className="text-success" /> Historial de Encuentros</h5>
+                <h5 className="mb-0 fs-5 d-flex align-items-center gap-2"><Clock size={20} className="text-primary" /> Próximos Encuentros (Citas Pendientes)</h5>
                 <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="btn btn-light border rounded-pill px-3 py-1 d-flex align-items-center gap-2" onClick={fetchHistory}><RefreshCw size={14} /> Actualizar</motion.button>
               </div>
               <div className="table-responsive">
                 <table className="table table-hover align-middle">
                   <thead className="table-light border-0"><tr className="text-muted small"><th>Fecha</th><th>Hora</th><th>Descripción</th><th>Aprendiz</th><th>Documento</th></tr></thead>
                   <tbody className="border-0">
-                    {history.length > 0 ? history.map(item => (
+                    {pendingMeetings.length > 0 ? pendingMeetings.map(item => (
                       <tr key={item.id_meetings_agenda}>
                         <td><div className="d-flex align-items-center gap-2"><Calendar size={14} className="text-muted" />{item.day}</div></td>
                         <td className="fw-semibold">{item.hour}</td>
@@ -160,7 +183,54 @@ function PsiAgendaPage() {
                         <td className="fw-medium">{item.apprentice_names} {item.apprentice_last_names}</td>
                         <td className="small text-muted">{item.apprentice_document}</td>
                       </tr>
-                    )) : <tr><td colSpan="5" className="text-center py-4 text-muted">No has agendado citas aún.</td></tr>}
+                    )) : <tr><td colSpan="5" className="text-center py-4 text-muted">No hay citas pendientes.</td></tr>}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Sección 2: Historial de Citas Pasadas */}
+        <motion.div className="row g-4 mt-2" variants={iV}>
+          <div className="col-12">
+            <div className="card border-0 shadow-sm rounded-4 p-4">
+              <h5 className="mb-3 fs-5 d-flex align-items-center gap-2"><Clock size={20} className="text-success" /> Historial de Encuentros (Citas Pasadas)</h5>
+              <div className="table-responsive">
+                <table className="table table-hover align-middle">
+                  <thead className="table-light border-0"><tr className="text-muted small"><th>Fecha</th><th>Hora</th><th>Descripción</th><th>Aprendiz</th><th>Documento</th><th className="text-center" style={{ width: "240px" }}>Asistencia</th></tr></thead>
+                  <tbody className="border-0">
+                    {pastMeetings.length > 0 ? pastMeetings.map(item => (
+                      <tr key={item.id_meetings_agenda}>
+                        <td><div className="d-flex align-items-center gap-2"><Calendar size={14} className="text-muted" />{item.day}</div></td>
+                        <td className="fw-semibold">{item.hour}</td>
+                        <td className="text-muted small">{item.descripcion || "Sin descripción"}</td>
+                        <td className="fw-medium">{item.apprentice_names} {item.apprentice_last_names}</td>
+                        <td className="small text-muted">{item.apprentice_document}</td>
+                        <td>
+                          <div className="d-flex gap-2 justify-content-center">
+                            <motion.button
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => handleAttendance(item.id_meetings_agenda, "asistio")}
+                              className={`btn btn-sm rounded-pill px-3 py-1 flex-fill d-flex align-items-center justify-content-center gap-1 ${item.asistencia === "asistio" ? "btn-success text-white fw-semibold" : "btn-outline-success"}`}
+                              style={{ minWidth: "105px" }}
+                            >
+                              <Check size={14} /> Asistió
+                            </motion.button>
+                            <motion.button
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => handleAttendance(item.id_meetings_agenda, "no_asistio")}
+                              className={`btn btn-sm rounded-pill px-3 py-1 flex-fill d-flex align-items-center justify-content-center gap-1 ${item.asistencia === "no_asistio" ? "btn-danger text-white fw-semibold" : "btn-outline-danger"}`}
+                              style={{ minWidth: "105px" }}
+                            >
+                              <X size={14} /> No asistió
+                            </motion.button>
+                          </div>
+                        </td>
+                      </tr>
+                    )) : <tr><td colSpan="6" className="text-center py-4 text-muted">No hay historial de citas pasadas.</td></tr>}
                   </tbody>
                 </table>
               </div>

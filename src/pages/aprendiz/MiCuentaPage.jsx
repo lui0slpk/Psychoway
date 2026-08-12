@@ -15,6 +15,7 @@ function MiCuentaPage() {
   const [formData, setFormData] = useState({
     documento: "", tipoDocumento: "", nombres: "", apellidos: "",
     fechaNacimiento: "", correo: "", password: "", confirmPassword: "",
+    numeroContacto: "", numeroFijo: "", programaFormacion: "", numeroFicha: "",
   });
   const [profilePhoto, setProfilePhoto] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
@@ -40,6 +41,10 @@ function MiCuentaPage() {
           apellidos: data.apellidos || "",
           fechaNacimiento: data.fechaNacimiento || "",
           correo: data.correo || "",
+          numeroContacto: data.contact_number || "",
+          numeroFijo: data.landline_number || "",
+          programaFormacion: data.training_program || "",
+          numeroFicha: data.ficha_number || "",
           password: "",
           confirmPassword: "",
         });
@@ -56,6 +61,10 @@ function MiCuentaPage() {
           apellidos: user?.last_names || "",
           fechaNacimiento: "",
           correo: "",
+          numeroContacto: "",
+          numeroFijo: "",
+          programaFormacion: "",
+          numeroFicha: "",
           password: "",
           confirmPassword: "",
         });
@@ -66,7 +75,15 @@ function MiCuentaPage() {
     fetchProfile();
   }, [user]);
 
-  const handleChange = (e) => setFormData({ ...formData, [e.target.id]: e.target.value });
+  const handleChange = (e) => {
+    let value = e.target.value;
+    if (e.target.id === "documento" || e.target.id === "numeroContacto" || e.target.id === "numeroFijo") {
+      value = value.replace(/\D/g, "");
+    } else if (e.target.id === "nombres" || e.target.id === "apellidos") {
+      value = value.replace(/[<>]/g, ""); // Prevenir XSS
+    }
+    setFormData({ ...formData, [e.target.id]: value });
+  };
 
   // ==================== FOTO DE PERFIL ====================
   const handleFileSelect = (file) => {
@@ -138,6 +155,10 @@ function MiCuentaPage() {
         apellidos: formData.apellidos,
         fechaNacimiento: formData.fechaNacimiento,
         correo: formData.correo,
+        numeroContacto: formData.numeroContacto,
+        numeroFijo: formData.numeroFijo,
+        programaFormacion: formData.programaFormacion,
+        numeroFicha: formData.numeroFicha,
       };
 
       // Solo enviar password si se llenó
@@ -322,6 +343,33 @@ function MiCuentaPage() {
                   <div className="mb-3">
                     <label className="form-label small fw-semibold">Correo</label>
                     <input type="email" className="form-control rounded-3 border-2" id="correo" placeholder="correo@ejemplo.com" value={formData.correo} onChange={handleChange} />
+                  </div>
+                  <div className="row mb-3">
+                    <div className="col-md-6">
+                      <label className="form-label small fw-semibold">Número de celular</label>
+                      <input type="tel" className="form-control rounded-3 border-2" id="numeroContacto" placeholder="3001234567" value={formData.numeroContacto} onChange={handleChange} required />
+                    </div>
+                    <div className="col-md-6">
+                      <label className="form-label small fw-semibold">Número fijo (Opcional)</label>
+                      <input type="tel" className="form-control rounded-3 border-2" id="numeroFijo" placeholder="6041234567" value={formData.numeroFijo} onChange={handleChange} />
+                    </div>
+                  </div>
+                  <div className="row mb-3">
+                    <div className="col-md-6">
+                      <label className="form-label small fw-semibold">Programa de formación</label>
+                      <select className="form-select rounded-3 border-2" id="programaFormacion" value={formData.programaFormacion} onChange={handleChange} required>
+                        <option value="" disabled>Seleccione un programa</option>
+                        <option value="ADSO">Analisis y Desarrollo de Software (ADSO)</option>
+                        <option value="MECATRONICA">Mecatrónica</option>
+                        <option value="TGS">Tecnólogo en Gestión de Empresas Agropecuarias (TGS)</option>
+                        <option value="QUIMICA">Química</option>
+                        <option value="TRF">Tecnólogo en Regencia de Farmacia (TRF)</option>
+                      </select>
+                    </div>
+                    <div className="col-md-6">
+                      <label className="form-label small fw-semibold">Número de ficha</label>
+                      <input type="text" className="form-control rounded-3 border-2" id="numeroFicha" placeholder="255678" value={formData.numeroFicha} onChange={handleChange} required />
+                    </div>
                   </div>
 
                   {/* ===== CONTRASEÑA ===== */}

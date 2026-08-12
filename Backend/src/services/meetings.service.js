@@ -62,3 +62,16 @@ export async function getByUser(userId) {
 export async function getProfessionalHistory(professionalId) {
   return meetingRepo.findByProfessionalHistory(professionalId);
 }
+
+/**
+ * Actualiza la asistencia de una cita.
+ */
+export async function updateAttendance(meetingId, asistencia) {
+  if (!meetingId || !asistencia) {
+    throw { status: 400, message: "El ID de la cita y la asistencia son requeridos." };
+  }
+  if (asistencia !== "asistio" && asistencia !== "no_asistio" && asistencia !== "pendiente") {
+    throw { status: 400, message: "Valor de asistencia inválido." };
+  }
+  return meetingRepo.updateAttendance(meetingId, asistencia);
+}

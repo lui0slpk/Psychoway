@@ -3,7 +3,7 @@ import MainLayout from "../../layouts/MainLayout";
 import meetImg from "../../assets/img/meet.png";
 import { useAuth } from "../../context/AuthContext";
 import { motion } from "framer-motion";
-import { Calendar, Clock, Users, FileText, CheckCircle, Video, Search, RefreshCw } from "lucide-react";
+import { Calendar, Clock, Users, FileText, CheckCircle, Video, Search, RefreshCw, Check, X } from "lucide-react";
 import { showSuccess, showError, showWarning } from "../../utils/alerts";
 import meetingsApi from "../../api/meetings.api";
 import psychologistsApi from "../../api/psychologists.api";
@@ -83,6 +83,17 @@ function AgendaPage() {
   const selPsych = psychologists.find(p => String(p.id_user) === String(searchPsychologist));
   const gs = { background: "linear-gradient(135deg, #005222 0%, #001A0B 100%)", border: "none" };
 
+  const getMeetingDate = (item) => {
+    if (!item.day || !item.hour) return new Date();
+    const [year, month, day] = item.day.split("-").map(Number);
+    const [hours, minutes] = item.hour.split(":").map(Number);
+    return new Date(year, month - 1, day, hours, minutes);
+  };
+
+  const now = new Date();
+  const pendingMeetings = history.filter(item => getMeetingDate(item) >= now);
+  const pastMeetings = history.filter(item => getMeetingDate(item) < now);
+
   return (
     <MainLayout pageTitle="Agenda" pageSubtitle="Organiza tus citas y actividades" currentPage="agenda">
       <motion.div className="container-fluid px-4 py-4" initial="hidden" animate="visible" variants={cV}>
@@ -151,25 +162,59 @@ function AgendaPage() {
           </motion.div>
         </div>
 
+        {/* Sección 1: Citas Pendientes */}
         <motion.div className="row g-4 mt-2" variants={iV}>
           <div className="col-12">
             <div className="card border-0 shadow-sm rounded-4 p-4">
               <div className="d-flex justify-content-between align-items-center mb-3">
-                <h5 className="mb-0 fs-5 d-flex align-items-center gap-2"><Clock size={20} className="text-success" /> Historial de Encuentros</h5>
+                <h5 className="mb-0 fs-5 d-flex align-items-center gap-2"><Clock size={20} className="text-primary" /> Próximos Encuentros (Citas Pendientes)</h5>
                 <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="btn btn-light border rounded-pill px-3 py-1 d-flex align-items-center gap-2" onClick={fetchHistory}><RefreshCw size={14} /> Actualizar</motion.button>
               </div>
               <div className="table-responsive">
                 <table className="table table-hover align-middle">
                   <thead className="table-light border-0"><tr className="text-muted small"><th>Fecha</th><th>Hora</th><th>Descripción</th><th>Psicólogo/a</th></tr></thead>
                   <tbody className="border-0">
-                    {history.length > 0 ? history.map(item => (
+                    {pendingMeetings.length > 0 ? pendingMeetings.map(item => (
                       <tr key={item.id_meetings_agenda}>
                         <td><div className="d-flex align-items-center gap-2"><Calendar size={14} className="text-muted" />{item.day}</div></td>
                         <td className="fw-semibold">{item.hour}</td>
                         <td className="text-muted small">{item.descripcion || "Sin descripción"}</td>
                         <td className="fw-medium">{item.prof_names} {item.prof_last_names}</td>
                       </tr>
-                    )) : <tr><td colSpan="4" className="text-center py-4 text-muted">No tienes citas agendadas aún.</td></tr>}
+                    )) : <tr><td colSpan="4" className="text-center py-4 text-muted">No tienes citas pendientes.</td></tr>}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Sección 2: Historial de Citas Pasadas */}
+        <motion.div className="row g-4 mt-2" variants={iV}>
+          <div className="col-12">
+            <div className="card border-0 shadow-sm rounded-4 p-4">
+              <h5 className="mb-3 fs-5 d-flex align-items-center gap-2"><Clock size={20} className="text-success" /> Historial de Encuentros (Citas Pasadas)</h5>
+              <div className="table-responsive">
+                <table className="table table-hover align-middle">
+                  <thead className="table-light border-0"><tr className="text-muted small"><th>Fecha</th><th>Hora</th><th>Descripción</th><th>Psicólogo/a</th><th className="text-center" style={{ width: "180px" }}>Asistencia</th></tr></thead>
+                  <tbody className="border-0">
+                    {pastMeetings.length > 0 ? pastMeetings.map(item => (
+                      <tr key={item.id_meetings_agenda}>
+                        <td><div className="d-flex align-items-center gap-2"><Calendar size={14} className="text-muted" />{item.day}</div></td>
+                        <td className="fw-semibold">{item.hour}</td>
+                        <td className="text-muted small">{item.descripcion || "Sin descripción"}</td>
+                        <td className="fw-medium">{item.prof_names} {item.prof_last_names}</td>
+                        <td className="text-center">
+                          {item.asistencia === "asistio" ? (
+                            <span className="badge bg-success bg-opacity-25 text-success rounded-pill px-3 py-1.5 fw-bold" style={{ fontSize: "0.85rem" }}><Check size={12} className="me-1 align-text-top" />Asistió</span>
+                          ) : item.asistencia === "no_asistio" ? (
+                            <span className="badge bg-danger bg-opacity-25 text-danger rounded-pill px-3 py-1.5 fw-bold" style={{ fontSize: "0.85rem" }}><X size={12} className="me-1 align-text-top" />No asistió</span>
+                          ) : (
+                            <span className="badge bg-secondary bg-opacity-25 text-secondary rounded-pill px-3 py-1.5 fw-bold" style={{ fontSize: "0.85rem" }}>Pendiente</span>
+                          )}
+                        </td>
+                      </tr>
+                    )) : <tr><td colSpan="5" className="text-center py-4 text-muted">No hay historial de citas pasadas.</td></tr>}
                   </tbody>
                 </table>
               </div>

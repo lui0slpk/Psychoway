@@ -39,7 +39,7 @@ export async function findByProfessionalId(professionalId) {
 export async function findByUserId(userId) {
   return query(
     `SELECT 
-       m.id_meetings_agenda, m.day, m.hour, m.descripcion,
+       m.id_meetings_agenda, m.day, m.hour, m.descripcion, m.asistencia,
        u.names as prof_names, u.last_names as prof_last_names
      FROM meetings_agenda m
      LEFT JOIN users u ON m.id_professional = u.id_user
@@ -55,7 +55,7 @@ export async function findByUserId(userId) {
 export async function findByProfessionalHistory(professionalId) {
   return query(
     `SELECT 
-       m.id_meetings_agenda, m.day, m.hour, m.descripcion,
+       m.id_meetings_agenda, m.day, m.hour, m.descripcion, m.asistencia,
        u.names as apprentice_names, u.last_names as apprentice_last_names,
        u.document as apprentice_document
      FROM meetings_agenda m
@@ -63,5 +63,15 @@ export async function findByProfessionalHistory(professionalId) {
      WHERE m.id_professional = $1
      ORDER BY m.day DESC, m.hour ASC`,
     [professionalId],
+  );
+}
+
+/**
+ * Actualiza la asistencia de una cita.
+ */
+export async function updateAttendance(meetingId, asistencia) {
+  return execute(
+    "UPDATE meetings_agenda SET asistencia = $1, last_update = NOW() WHERE id_meetings_agenda = $2",
+    [asistencia, meetingId],
   );
 }
