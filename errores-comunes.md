@@ -10,21 +10,19 @@
 
 1. [El backend no arranca: mensaje FATAL de variables de entorno](#1-el-backend-no-arranca-mensaje-fatal-de-variables-de-entorno)
 2. [El backend arranca pero no carga las variables del `.env`](#2-el-backend-arranca-pero-no-carga-las-variables-del-env)
-3. [Marcadores de conflicto de Git sin resolver (`<<<<<<<`)](#3-marcadores-de-conflicto-de-git-sin-resolver)
-4. [Error conectando a Supabase](#4-error-conectando-a-supabase)
-5. [`relation "users" does not exist` — el esquema no se aplicó](#5-relation-users-does-not-exist--el-esquema-no-se-aplicó)
-6. [Violación de UNIQUE al registrar un usuario](#6-violación-de-unique-al-registrar-un-usuario)
-7. [Error 401 de autenticación (Token no proporcionado / Sesión expirada / Token inválido)](#7-error-401-de-autenticación)
-8. [Error 403 — No tienes permisos para realizar esta acción](#8-error-403--no-tienes-permisos-para-realizar-esta-acción)
-9. [Fallo de conexión con el Asistente IA (Psychobot)](#9-fallo-de-conexión-con-el-asistente-ia-psychobot)
-10. [Gemini devuelve HTTP 429 (cuota agotada)](#10-gemini-devuelve-http-429-cuota-agotada)
-11. [No llegan los correos de recuperación de contraseña](#11-no-llegan-los-correos-de-recuperación-de-contraseña)
-12. [El enlace de recuperación da "Token inválido o expirado"](#12-el-enlace-de-recuperación-da-token-inválido-o-expirado)
-13. [En producción el frontend apunta a `localhost:5000`](#13-en-producción-el-frontend-apunta-a-localhost5000)
-14. [Error de CORS en la consola del navegador](#14-error-de-cors-en-la-consola-del-navegador)
-15. [El build de Render falla o "Cannot find module"](#15-el-build-de-render-falla-o-cannot-find-module)
-16. [El backend de Render se duerme y la primera petición falla](#16-el-backend-de-render-se-duerme-y-la-primera-petición-falla)
-17. [404 al recargar una ruta del frontend](#17-404-al-recargar-una-ruta-del-frontend)
+3. [Error conectando a Supabase](#3-error-conectando-a-supabase)
+4. [`relation "users" does not exist` — el esquema no se aplicó](#4-relation-users-does-not-exist--el-esquema-no-se-aplicó)
+5. [Error 401 de autenticación (Token no proporcionado / Sesión expirada / Token inválido)](#5-error-401-de-autenticación)
+6. [Error 403 — No tienes permisos para realizar esta acción](#6-error-403--no-tienes-permisos-para-realizar-esta-acción)
+7. [Fallo de conexión con el Asistente IA (Psychobot)](#7-fallo-de-conexión-con-el-asistente-ia-psychobot)
+8. [Gemini devuelve HTTP 429 (cuota agotada)](#8-gemini-devuelve-http-429-cuota-agotada)
+9. [No llegan los correos de recuperación de contraseña](#9-no-llegan-los-correos-de-recuperación-de-contraseña)
+10. [El enlace de recuperación da "Token inválido o expirado"](#10-el-enlace-de-recuperación-da-token-inválido-o-expirado)
+11. [En producción el frontend apunta a `localhost:5000`](#11-en-producción-el-frontend-apunta-a-localhost5000)
+12. [Error de CORS en la consola del navegador](#12-error-de-cors-en-la-consola-del-navegador)
+13. [El build de Render falla o "Cannot find module"](#13-el-build-de-render-falla-o-cannot-find-module)
+14. [El backend de Render se duerme y la primera petición falla](#14-el-backend-de-render-se-duerme-y-la-primera-petición-falla)
+15. [404 al recargar una ruta del frontend](#15-404-al-recargar-una-ruta-del-frontend)
 
 ---
 
@@ -71,34 +69,7 @@
 
 ---
 
-## 3. Marcadores de conflicto de Git sin resolver (`<<<<<<<`)
-
-- **Error:**
-  `SyntaxError: Unexpected token '<'` al iniciar el backend, o comportamiento errático al compilar el frontend. En Git el archivo figura como *both modified*.
-
-- **Síntomas típicos:**
-  El backend no arranca o rompe a mitad de ejecución. Al abrir el archivo aparecen líneas `<<<<<<< HEAD`, `=======` y `>>>>>>> origin/main`. En este repositorio se han detectado marcadores en `Backend/src/config/environment.js`, `Backend/src/services/auth.service.js`, `Backend/src/repositories/user.repository.js`, `Backend/src/services/users.service.js` y `src/pages/administrador/GestionPage.jsx`.
-
-- **Posibles causas:**
-  Un merge o rebase quedó a medias: los conflictos se guardaron en el archivo en vez de resolverse, o se hizo commit con los marcadores.
-
-- **Diagnóstico:**
-  Buscar marcadores en todo el repositorio:
-  ```bash
-  rg "<<<<<<<|=======|>>>>>>>" -n .
-  ```
-  Revisar `git status` para confirmar si hay merge en curso (`Unmerged paths`).
-
-- **Paso a paso de la solución:**
-  1. Si hay un merge en curso, terminarlo con `git merge --abort` o resolver archivo por archivo.
-  2. Para cada archivo con marcadores, quedarse con una de las dos versiones (la que corresponda según la funcionalidad) o combinar el contenido, y eliminar las líneas `<<<<<<<`, `=======` y `>>>>>>>`.
-  3. Probar la sintaxis del archivo: `node -c Backend/src/config/environment.js` (y el resto).
-  4. Ejecutar los tests y arrancar la app para confirmar que no rompe.
-  5. Hacer commit de la resolución. **Nunca** hacer commit dejando los marcadores.
-
----
-
-## 4. Error conectando a Supabase
+## 3. Error conectando a Supabase
 
 - **Error:**
   Log del backend: `❌ Error conectando a Supabase:` seguido del mensaje de `pg`.
@@ -120,7 +91,7 @@
 
 ---
 
-## 5. `relation "users" does not exist` — el esquema no se aplicó
+## 4. `relation "users" does not exist` — el esquema no se aplicó
 
 - **Error:**
   `error: relation "users" does not exist` (código PostgreSQL `42P01`) en los logs del backend. Puede repetirse con cualquier tabla: `diary`, `meetings`, `psychobot_chats`, etc.
@@ -146,28 +117,7 @@
 
 ---
 
-## 6. Violación de UNIQUE al registrar un usuario
-
-- **Error:**
-  `duplicate key value violates unique constraint "users_email_key"` (o `users_document_key`) — código `23505` — en los logs, y el registro responde 500.
-
-- **Síntomas típicos:**
-  Al registrar un correo o documento que ya existe, el usuario ve un error genérico de servidor en lugar de un mensaje claro. El administrador no puede crear un usuario con datos duplicados.
-
-- **Posibles causas:**
-  El controlador de registro no valida la existencia previa ni captura la violación de UNIQUE que devuelve PostgreSQL.
-
-- **Diagnóstico:**
-  Buscar en los logs la línea con `duplicate key value violates unique constraint` y anotar qué constraint se violó (`users_email_key`, `users_document_key`, etc.).
-
-- **Paso a paso de la solución:**
-  1. En `auth.controller.js`/`auth.service.js`, capturar el error `23505` (o verificar previamente con un `SELECT` por email/documento).
-  2. Devolver un 400 con mensaje claro: "El correo ya está registrado" / "El documento ya está registrado".
-  3. Añadir un caso de prueba de registro duplicado y correrlo.
-
----
-
-## 7. Error 401 de autenticación
+## 5. Error 401 de autenticación
 
 - **Error:**
   Respuesta **401** con uno de estos mensajes: `Token no proporcionado. Inicie sesión.` · `Sesión expirada. Inicie sesión nuevamente.` · `Token inválido. Inicie sesión nuevamente.`
@@ -189,7 +139,7 @@
 
 ---
 
-## 8. Error 403 — No tienes permisos para realizar esta acción
+## 6. Error 403 — No tienes permisos para realizar esta acción
 
 - **Error:**
   Respuesta **403** con `No tienes permisos para realizar esta acción.` (o `No tienes permisos para acceder a este perfil.` en el caso de tocar el perfil de otro usuario).
@@ -211,7 +161,7 @@
 
 ---
 
-## 9. Fallo de conexión con el Asistente IA (Psychobot)
+## 7. Fallo de conexión con el Asistente IA (Psychobot)
 
 - **Error:**
   Fallo de conexión con el Asistente IA. La API de Gemini responde con error HTTP **403** (clave inválida) o **429** (cuota) y el chat no responde.
@@ -229,11 +179,11 @@
   1. Generar una nueva clave en **Google AI Studio** → API keys (https://aistudio.google.com/apikey).
   2. Actualizar la variable `GEMINI_API_KEY` en el archivo `.env` local o en el panel de Render (**Environment**).
   3. Reiniciar el backend y confirmar que desaparece el warning de arranque.
-  4. Abrir el Psychobot y enviar un mensaje de prueba. Si sigue fallando con 429, ver el error 10 de este manual.
+  4. Abrir el Psychobot y enviar un mensaje de prueba. Si sigue fallando con 429, ver el error 8 de este manual.
 
 ---
 
-## 10. Gemini devuelve HTTP 429 (cuota agotada)
+## 8. Gemini devuelve HTTP 429 (cuota agotada)
 
 - **Error:**
   HTTP **429** `RESOURCE_EXHAUSTED` en los logs del backend al llamar a `generateContent`.
@@ -255,7 +205,7 @@
 
 ---
 
-## 11. No llegan los correos de recuperación de contraseña
+## 9. No llegan los correos de recuperación de contraseña
 
 - **Error:**
   SMTP responde `535 Authentication Failed` / `Invalid login`. En el arranque aparece `⚠️ No se pudo verificar el transporter de email:` (no es fatal, el backend sigue).
@@ -278,7 +228,7 @@
 
 ---
 
-## 12. El enlace de recuperación da "Token inválido o expirado"
+## 10. El enlace de recuperación da "Token inválido o expirado"
 
 - **Error:**
   Error **400** `Token inválido o expirado` o `El token ha expirado` al abrir el enlace de recuperación de contraseña.
@@ -300,7 +250,7 @@
 
 ---
 
-## 13. En producción el frontend apunta a `localhost:5000`
+## 11. En producción el frontend apunta a `localhost:5000`
 
 - **Error:**
   En el build de producción todas las peticiones a la API van a `http://localhost:5000` y fallan (`ERR_CONNECTION_REFUSED` / `Failed to fetch`).
@@ -322,7 +272,7 @@
 
 ---
 
-## 14. Error de CORS en la consola del navegador
+## 12. Error de CORS en la consola del navegador
 
 - **Error:**
   `Access to fetch at 'https://<api>' from origin 'https://<front>' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present...`
@@ -344,7 +294,7 @@
 
 ---
 
-## 15. El build de Render falla o "Cannot find module"
+## 13. El build de Render falla o "Cannot find module"
 
 - **Error:**
   El deploy en Render termina en error de build/start: `Cannot find module '...'`, `Module not found`, `npm ERR!`, o el servicio se inicia y se cae de inmediato.
@@ -368,7 +318,7 @@
 
 ---
 
-## 16. El backend de Render se duerme y la primera petición falla
+## 14. El backend de Render se duerme y la primera petición falla
 
 - **Error:**
   La primera petición tras un rato de inactividad tarda decenas de segundos o falla por timeout; el resto funciona normal.
@@ -389,7 +339,7 @@
 
 ---
 
-## 17. 404 al recargar una ruta del frontend
+## 15. 404 al recargar una ruta del frontend
 
 - **Error:**
   Al recargar `https://<dominio>/dashboard` (o cualquier ruta interna) el servidor responde **404**, mientras que navegando desde la home todo funciona.
@@ -410,4 +360,4 @@
 
 ---
 
-*Última actualización: 2026-08-11 · Repositorio: lui0slpk/Psychoway*
+*Última actualización: 2026-08-12 · Repositorio: lui0slpk/Psychoway*

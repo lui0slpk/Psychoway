@@ -1,0 +1,23 @@
+import { defineConfig } from 'vitest/config';
+import react from '@vitejs/plugin-react';
+
+export default defineConfig({
+  plugins: [react()],
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    include: ['src/tests/**/*.test.jsx', 'src/tests/**/*.test.js'],
+    setupFiles: ['./src/tests/setup.js'],
+    coverage: {
+      provider: 'v8',
+      include: ['src/**/*.{js,jsx}'],
+    },
+    css: false,
+    testTimeout: 10000,
+  },
+  resolve: {
+    alias: {
+      '@': '/src',
+    },
+  },
+});

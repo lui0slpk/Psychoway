@@ -70,3 +70,7 @@ Thumbs.db
 desktop.ini
 Ehthumbs.db
 
+# AI Skills
+
+.atl/
+.codegraph/
