@@ -148,7 +148,8 @@ CREATE TABLE IF NOT EXISTS meetings_agenda (
   descripcion        VARCHAR(255) DEFAULT NULL,
   last_update        TIMESTAMP    DEFAULT NOW(),
   id_user            INT          DEFAULT NULL REFERENCES users(id_user) ON DELETE CASCADE,
-  id_professional    INT          DEFAULT NULL REFERENCES users(id_user) ON DELETE CASCADE
+  id_professional    INT          DEFAULT NULL REFERENCES users(id_user) ON DELETE CASCADE,
+  asistencia         VARCHAR(45)  DEFAULT 'pendiente'
 );
 
 -- 8. Tabla psychobot_sessions
