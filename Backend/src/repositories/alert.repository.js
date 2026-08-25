@@ -5,18 +5,17 @@ import { query, execute } from "../config/database.js";
  */
 export async function findAll() {
   return query(
-    `SELECT a.id_alert, a.id_user, a.motivo, a.leido, a.timestamp, 
-            CONCAT(u.names, ' ', u.last_names) as aprendiz_nombre, 
-            u.document,
-            u.email as aprendiz_email,
-            u.birth_date as aprendiz_birth_date,
-            u.doc_type as aprendiz_doc_type,
-            u.profile_photo as aprendiz_foto
+    `SELECT 
+       a.id_alert, a.id_user, a.motivo, a.leido, a.timestamp,
+       u.names, u.last_names, u.document, u.doc_type,
+       u.birth_date, u.email, u.contact_number, u.landline_number,
+       u.training_program, u.ficha_number
      FROM psychologist_alerts a
      JOIN users u ON a.id_user = u.id_user
      ORDER BY a.leido ASC, a.timestamp DESC`,
   );
 }
+
 
 /**
  * Marca una alerta como leída.

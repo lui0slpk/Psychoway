@@ -21,8 +21,8 @@ export async function getByUser(req, res, next) {
 
 export async function update(req, res, next) {
   try {
-    const { nombre, descripcion, estado } = req.body;
-    const result = await objectivesService.update(req.params.id, nombre, descripcion, estado);
+    const { userId, nombre, descripcion, estado } = req.body;
+    const result = await objectivesService.update(req.params.id, userId, nombre, descripcion, estado);
     res.status(200).json(result);
   } catch (error) {
     next(error);

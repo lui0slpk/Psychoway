@@ -1,12 +1,25 @@
 import dotenv from "dotenv";
+import { fileURLToPath } from "url";
+import path from "path";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Busca .env en la raíz del monorepo y en Backend
+dotenv.config({ path: path.resolve(__dirname, "../../../.env") });
+dotenv.config({ path: path.resolve(__dirname, "../../.env") });
 dotenv.config();
 
 if (!process.env.JWT_SECRET) {
-  throw new Error("FATAL: JWT_SECRET no está definido en las variables de entorno.");
+  throw new Error(
+    "FATAL: JWT_SECRET no está definido en las variables de entorno.",
+  );
 }
 
 if (!process.env.SUPABASE_URL || !process.env.SUPABASE_DB_URL) {
-  throw new Error("FATAL: SUPABASE_URL y SUPABASE_DB_URL deben estar definidos en .env");
+  throw new Error(
+    "FATAL: SUPABASE_URL y SUPABASE_DB_URL deben estar definidos en .env",
+  );
 }
 const env = {
   // Servidor

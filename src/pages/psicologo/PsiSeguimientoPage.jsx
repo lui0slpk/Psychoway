@@ -1,13 +1,15 @@
 import React, { useEffect, useRef, useState } from "react";
 import MainLayout from "../../layouts/MainLayout";
 import { useAuth } from "../../context/AuthContext";
+import trackingApi from "../../api/tracking.api";
+import diaryApi from "../../api/diary.api";
 import { motion } from "framer-motion";
 import { Users, AlertTriangle, Search, BarChart2, Clock, Smile, Meh, Frown, Bell, CheckCircle } from "lucide-react";
 
 function PsiSeguimientoPage() {
   const chartRef = useRef(null);
   const chartInstance = useRef(null);
-  const { hasRole, authFetch } = useAuth();
+  const { hasRole } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [aprendices, setAprendices] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
@@ -51,29 +53,27 @@ function PsiSeguimientoPage() {
 
   useEffect(() => {
     const fetchAprendices = async () => {
-      try { const res = await authFetch("http://localhost:5000/api/psychologist/apprentices-with-emotions"); if (res.ok) { const data = await res.json(); setAprendices(data); if (data.length > 0) setSelectedUser(data[0]); } } catch (e) { console.error("Error:", e); } finally { setLoading(false); }
+      try { const data = await trackingApi.getApprenticesWithEmotions(); setAprendices(data); if (data.length > 0) setSelectedUser(data[0]); } catch (e) { console.error("Error:", e); } finally { setLoading(false); }
     };
     const fetchAlerts = async () => {
-      try { const res = await authFetch("http://localhost:5000/api/psychologist/alerts"); if (res.ok) setAlerts(await res.json()); } catch (e) { console.error("Error:", e); }
+      try { setAlerts(await trackingApi.getAlerts()); } catch (e) { console.error("Error:", e); }
     };
     fetchAprendices(); fetchAlerts();
     const intervalId = setInterval(fetchAlerts, 15000);
     return () => clearInterval(intervalId);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const markAlertAsRead = async (id_alert) => {
-    try { await authFetch(`http://localhost:5000/api/psychologist/alerts/${id_alert}/read`, { method: "PUT" }); setAlerts(prev => prev.map(a => a.id_alert === id_alert ? { ...a, leido: 1 } : a)); } catch (e) { console.error("Error:", e); }
+    try { await trackingApi.markAlertAsRead(id_alert); setAlerts(prev => prev.map(a => a.id_alert === id_alert ? { ...a, leido: 1 } : a)); } catch (e) { console.error("Error:", e); }
   };
 
   useEffect(() => {
     if (!selectedUser) return;
     setPagEmoc(1);
     const fetchHistorial = async () => {
-      try { const res = await authFetch(`http://localhost:5000/api/diary/entries/${selectedUser.id}`); if (res.ok) setHistorial(await res.json()); else setHistorial([]); } catch (e) { setHistorial([]); }
+      try { setHistorial(await diaryApi.getEntries(selectedUser.id)); } catch (e) { setHistorial([]); }
     };
     fetchHistorial();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedUser]);
 
   const filteredAprendices = aprendices.filter(ap => ap.nombre.toLowerCase().includes(searchTerm.toLowerCase()) || ap.documento.includes(searchTerm));
@@ -112,100 +112,104 @@ function PsiSeguimientoPage() {
         {/* Alertas */}
         {unreadAlerts.length > 0 && (
           <motion.div className="mb-4" variants={iV}>
-            <div className="card border-0 shadow-sm rounded-4 overflow-hidden" style={{ borderLeft: "4px solid #dc3545" }}>
-              <div className="px-4 py-3 d-flex align-items-center gap-2" style={{ background: "linear-gradient(135deg, #dc3545 0%, #a71d2a 100%)" }}>
+            <div className="card border-0 shadow rounded-4 overflow-hidden">
+              {/* Cabecera */}
+              <div className="px-4 py-3 d-flex align-items-center gap-2" style={{ background: "linear-gradient(135deg, #b91c1c 0%, #7f1d1d 100%)" }}>
                 <Bell size={18} className="text-white" />
-                <span className="text-white fw-bold">Alertas de Riesgo Detectadas por AI ({unreadAlerts.length})</span>
+                <span className="text-white fw-bold fs-6">Alertas de Riesgo — IA detectó contenido de crisis ({unreadAlerts.length})</span>
               </div>
-              <div className="p-0">
-                {unreadAlerts.map(alert => (
-                  <div key={alert.id_alert} className="p-3 border-bottom" style={{ background: "#fff8f8" }}>
-                    <div className="d-flex align-items-start gap-3">
-                      {/* Foto del aprendiz */}
-                      <div className="flex-shrink-0">
-                        {alert.aprendiz_foto ? (
-                          <img
-                            src={alert.aprendiz_foto}
-                            alt={alert.aprendiz_nombre}
-                            style={{ width: 52, height: 52, borderRadius: "50%", objectFit: "cover", border: "2px solid #dc3545" }}
-                          />
-                        ) : (
-                          <div style={{ width: 52, height: 52, borderRadius: "50%", background: "linear-gradient(135deg, #dc3545, #a71d2a)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                            <span style={{ color: "#fff", fontWeight: "bold", fontSize: "1.2rem" }}>
-                              {alert.aprendiz_nombre?.charAt(0) || "?"}
+
+              {/* Lista de alertas */}
+              <div className="p-3 d-flex flex-column gap-3">
+                {unreadAlerts.map(alert => {
+                  // Extraer solo el motivo (antes del "—" si viene el formato nuevo)
+                  const motivoParts = (alert.motivo || "").split(" — ");
+                  const motivoTexto = motivoParts[0] || alert.motivo;
+
+                  return (
+                    <div
+                      key={alert.id_alert}
+                      className="rounded-3 border overflow-hidden"
+                      style={{ borderColor: "#fca5a5", background: "#fff5f5" }}
+                    >
+                      {/* Franja superior con motivo */}
+                      <div className="px-3 py-2 d-flex align-items-start gap-2" style={{ background: "#fee2e2" }}>
+                        <AlertTriangle size={16} className="text-danger mt-1 flex-shrink-0" />
+                        <div>
+                          <span className="fw-bold text-danger small d-block">Motivo detectado por IA:</span>
+                          <span className="small text-dark">{motivoTexto}</span>
+                        </div>
+                      </div>
+
+                      {/* Cuerpo con datos del aprendiz */}
+                      <div className="px-3 py-3">
+                        <div className="row g-2 mb-2">
+                          <div className="col-12">
+                            <span className="fw-bold" style={{ color: "#7f1d1d", fontSize: "0.95rem" }}>
+                              👤 {alert.names} {alert.last_names}
                             </span>
                           </div>
-                        )}
-                      </div>
-
-                      {/* Info del aprendiz + motivo */}
-                      <div className="flex-grow-1 min-w-0">
-                        <div className="d-flex align-items-center gap-2 mb-1 flex-wrap">
-                          <AlertTriangle size={14} className="text-danger flex-shrink-0" />
-                          <span className="fw-bold small text-danger">Alerta de riesgo</span>
-                          <small className="text-muted ms-auto">{new Date(alert.timestamp).toLocaleString()}</small>
                         </div>
 
-                        {/* Datos del aprendiz */}
-                        <div className="rounded-3 p-2 mb-2" style={{ background: "#f8d7da", fontSize: "0.82rem" }}>
-                          <div className="row g-1">
+                        <div className="row g-2" style={{ fontSize: "0.82rem" }}>
+                          <div className="col-sm-6">
+                            <span className="text-muted">📄 Documento:</span>{" "}
+                            <span className="fw-semibold">{alert.doc_type || ""} {alert.document}</span>
+                          </div>
+                          <div className="col-sm-6">
+                            <span className="text-muted">📋 Ficha:</span>{" "}
+                            <span className="fw-semibold">{alert.ficha_number || "N/A"}</span>
+                          </div>
+                          <div className="col-sm-6">
+                            <span className="text-muted">🎓 Programa:</span>{" "}
+                            <span className="fw-semibold">{alert.training_program || "N/A"}</span>
+                          </div>
+                          <div className="col-sm-6">
+                            <span className="text-muted">📱 Celular:</span>{" "}
+                            <span className="fw-semibold">{alert.contact_number || "N/A"}</span>
+                          </div>
+                          <div className="col-sm-6">
+                            <span className="text-muted">📞 Fijo:</span>{" "}
+                            <span className="fw-semibold">{alert.landline_number || "N/A"}</span>
+                          </div>
+                          <div className="col-sm-6">
+                            <span className="text-muted">✉️ Email:</span>{" "}
+                            <span className="fw-semibold">{alert.email || "N/A"}</span>
+                          </div>
+                          {alert.birth_date && (
                             <div className="col-sm-6">
-                              <span className="text-muted">Nombre:</span>{" "}
-                              <strong>{alert.aprendiz_nombre}</strong>
+                              <span className="text-muted">🎂 Nacimiento:</span>{" "}
+                              <span className="fw-semibold">{new Date(alert.birth_date).toLocaleDateString("es-CO")}</span>
                             </div>
-                            <div className="col-sm-6">
-                              <span className="text-muted">{alert.aprendiz_doc_type || "Doc"}:</span>{" "}
-                              <strong>{alert.document}</strong>
-                            </div>
-                            <div className="col-sm-6">
-                              <span className="text-muted">Correo:</span>{" "}
-                              <strong>{alert.aprendiz_email || "—"}</strong>
-                            </div>
-                            <div className="col-sm-6">
-                              <span className="text-muted">Fecha nac.:</span>{" "}
-                              <strong>
-                                {alert.aprendiz_birth_date
-                                  ? new Date(alert.aprendiz_birth_date).toLocaleDateString()
-                                  : "—"}
-                              </strong>
-                            </div>
+                          )}
+                          <div className="col-sm-6">
+                            <span className="text-muted">🕐 Fecha alerta:</span>{" "}
+                            <span className="fw-semibold">{new Date(alert.timestamp).toLocaleString("es-CO", { dateStyle: "short", timeStyle: "short" })}</span>
                           </div>
                         </div>
+                      </div>
 
-                        {/* Motivo */}
-                        <div className="small mb-2">
-                          <strong>Motivo:</strong> {alert.motivo}
-                        </div>
-
-                        {/* Acciones */}
-                        <div className="d-flex gap-2 flex-wrap">
-                          {alert.aprendiz_email && (
-                            <a
-                              href={`mailto:${alert.aprendiz_email}?subject=Psychoway%20-%20Comunicado%20importante&body=Hola%20${encodeURIComponent(alert.aprendiz_nombre)}%2C%0A%0AEn%20Psychoway%20hemos%20notado%20que%20puedes%20estar%20pasando%20por%20un%20momento%20dif%C3%ADcil.%20Estamos%20aqu%C3%AD%20para%20apoyarte.%0A%0ACu%C3%ADdate%2C%0AEquipo%20Psychoway`}
-                              className="btn btn-sm btn-danger rounded-pill px-3"
-                              style={{ fontSize: "0.78rem" }}
-                            >
-                              ✉️ Contactar aprendiz
-                            </a>
-                          )}
-                          <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            className="btn btn-outline-secondary btn-sm rounded-pill px-3"
-                            style={{ fontSize: "0.78rem" }}
-                            onClick={() => markAlertAsRead(alert.id_alert)}
-                          >
-                            <CheckCircle size={13} className="me-1" />Marcar como leído
-                          </motion.button>
-                        </div>
+                      {/* Pie con botón */}
+                      <div className="px-3 pb-3 d-flex justify-content-end">
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          className="btn btn-sm rounded-pill px-4 fw-semibold"
+                          style={{ background: "#7f1d1d", color: "#fff", fontSize: "0.8rem" }}
+                          onClick={() => markAlertAsRead(alert.id_alert)}
+                        >
+                          <CheckCircle size={13} className="me-1" />
+                          Marcar como atendida
+                        </motion.button>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </motion.div>
         )}
+
 
         <div className="row g-4">
           {/* Lista de Aprendices */}
