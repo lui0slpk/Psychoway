@@ -34,7 +34,7 @@ Crear un espacio seguro donde los aprendices SENA puedan:
 
 ## 🏗️ Arquitectura del Sistema
 
-Psychoway es un **monorepo** organizado con **pnpm workspaces** que contiene un frontend SPA (en la raíz) y un backend API (en `Backend/`). La aplicación sigue una arquitectura **cliente-servidor por capas** con separación clara de responsabilidades.
+Psychoway es un **monorepo** organizado con **pnpm workspaces** que contiene un frontend SPA (en `Frontend/`) y un backend API (en `Backend/`). La aplicación sigue una arquitectura **cliente-servidor por capas** con separación clara de responsabilidades.
 
 ### 📊 Diagrama Arquitectónico
 
@@ -45,8 +45,8 @@ Psychoway es un **monorepo** organizado con **pnpm workspaces** que contiene un 
 
 ┌──────────────────────────┐                      ┌──────────────────────┐
 │   CLIENT (React SPA)     │   HTTP/REST + JSON   │   BACKEND (Express)  │
-│  ┌──────────────────────┐│      JWT (Bearer)    │  ┌──────────────────┐│
-│  │  src/                │├─────────────────────►│  │  routes/         ││
+│   ┌──────────────────────┐│      JWT (Bearer)    │  ┌──────────────────┐│
+│   │  Frontend/src/       │├─────────────────────►│  │  routes/         ││
 │  │  • pages/ (por rol)  ││                      │  │  controllers/    ││
 │  │  • api/ (módulos)    │◄──────────────────────┤  │  services/       ││
 │  │  • context/          ││   JSON + errores     │  │  repositories/   ││
@@ -79,7 +79,7 @@ Psychoway es un **monorepo** organizado con **pnpm workspaces** que contiene un 
 - **SPA Responsiva**: Interfaz con Bootstrap 5 y animaciones con Framer Motion
 - **State Management**: Context API (`AuthContext`) para autenticación y sesión
 - **Routing**: React Router v7 con rutas protegidas por rol (`ProtectedRoute`)
-- **Consumo de API**: Cliente HTTP propio (`src/api/client.js`) basado en `fetch`
+- **Consumo de API**: Cliente HTTP propio (`Frontend/src/api/client.js`) basado en `fetch`
 - **Port**: `3000`
 
 #### **Backend (Node.js + Express 5)**
@@ -108,33 +108,37 @@ Psychoway es un **monorepo** organizado con **pnpm workspaces** que contiene un 
 
 ```
 Psychoway/                       # Monorepo (pnpm workspace)
-├── src/                         # Aplicación React (frontend)
-│   ├── api/                     # Módulos de consumo de API
-│   │   ├── client.js            # Cliente HTTP compartido (fetch + ApiError)
-│   │   ├── config.js            # Configuración de URLs
-│   │   ├── auth.api.js          # Módulo: autenticación
-│   │   ├── meetings.api.js      # Módulo: citas
-│   │   ├── users.api.js         # Módulo: usuarios
-│   │   ├── diary.api.js         # Módulo: diario
-│   │   ├── emotions.api.js      # Módulo: emociones
-│   │   ├── objectives.api.js    # Módulo: objetivos
-│   │   ├── tracking.api.js      # Módulo: seguimiento
-│   │   ├── psychobot.api.js     # Módulo: chat IA
-│   │   ├── notifications.api.js # Módulo: notificaciones
-│   │   ├── psychologists.api.js # Módulo: psicólogos
-│   │   ├── index.js             # Barrel export
-│   │   └── tests/               # Tests unitarios de los módulos API
-│   ├── components/              # Componentes reutilizables (ProtectedRoute)
-│   ├── context/                 # Context API (AuthContext)
-│   ├── layouts/                 # Layouts (Navbar, Sidebar, Footer, MainLayout)
-│   ├── pages/                   # Páginas por rol
-│   │   ├── aprendiz/            # Diario, Seguimiento, Agenda, Psychobot, MiCuenta, Privacidad
-│   │   ├── psicologo/           # PsiSeguimiento, PsiAgenda, MiCuentaPsi
-│   │   └── administrador/       # Gestion, GestionMod
-│   ├── utils/                   # Funciones auxiliares (alerts)
-│   ├── assets/                  # Imágenes y recursos estáticos
-│   ├── App.js                   # Definición de rutas
-│   └── index.js                 # Entry point
+├── Frontend/                    # Aplicación React (frontend SPA)
+│   ├── src/
+│   │   ├── api/                 # Módulos de consumo de API
+│   │   │   ├── client.js        # Cliente HTTP compartido (fetch + ApiError)
+│   │   │   ├── config.js        # Configuración de URLs
+│   │   │   ├── auth.api.js      # Módulo: autenticación
+│   │   │   ├── meetings.api.js  # Módulo: citas
+│   │   │   ├── users.api.js     # Módulo: usuarios
+│   │   │   ├── diary.api.js     # Módulo: diario
+│   │   │   ├── emotions.api.js  # Módulo: emociones
+│   │   │   ├── objectives.api.js# Módulo: objetivos
+│   │   │   ├── tracking.api.js  # Módulo: seguimiento
+│   │   │   ├── psychobot.api.js # Módulo: chat IA
+│   │   │   ├── notifications.api.js # Módulo: notificaciones
+│   │   │   ├── psychologists.api.js # Módulo: psicólogos
+│   │   │   ├── index.js         # Barrel export
+│   │   │   └── tests/           # Tests unitarios de los módulos API
+│   │   ├── components/          # Componentes reutilizables (ProtectedRoute)
+│   │   ├── context/             # Context API (AuthContext)
+│   │   ├── layouts/             # Layouts (Navbar, Sidebar, Footer, MainLayout)
+│   │   ├── pages/               # Páginas por rol
+│   │   │   ├── aprendiz/        # Diario, Seguimiento, Agenda, Psychobot, MiCuenta, Privacidad
+│   │   │   ├── psicologo/       # PsiSeguimiento, PsiAgenda, MiCuentaPsi
+│   │   │   └── administrador/   # Gestion, GestionMod
+│   │   ├── utils/               # Funciones auxiliares (alerts)
+│   │   ├── assets/              # Imágenes y recursos estáticos
+│   │   ├── App.js               # Definición de rutas
+│   │   └── index.js             # Entry point
+│   ├── public/                  # Archivos estáticos (index.html, favicon, manifest)
+│   ├── package.json             # Dependencias y scripts del frontend
+│   └── vitest.config.js         # Configuración de tests (Vitest)
 │
 ├── Backend/                     # Servidor Express
 │   ├── src/
@@ -144,15 +148,15 @@ Psychoway/                       # Monorepo (pnpm workspace)
 │   │   ├── repositories/        # Acceso a datos (queries SQL)
 │   │   ├── middlewares/         # Auth JWT, autorización por rol (requireRole/requireAdmin)
 │   │   ├── config/              # database, environment, gemini
-│   │   ├── utils/               # Constantes y validadores (validators.js)
-│   │   └── server.js            # Entry point
+│   │   └── utils/               # Constantes y validadores (validators.js)
+│   ├── server.js                # Entry point
 │   ├── .env.example             # Plantilla de variables de entorno
 │   └── package.json
 │
 ├── supabase_schema.sql          # Esquema de base de datos (PostgreSQL)
-├── pnpm-workspace.yaml          # Configuración de workspaces
+├── pnpm-workspace.yaml          # Configuración de workspaces ('.', Frontend, Backend)
 ├── vercel.json                  # Configuración de deploy (Vercel)
-├── package.json                 # Scripts del monorepo
+├── package.json                 # Scripts del monorepo (orquestador)
 └── README.md
 ```
 
@@ -226,7 +230,7 @@ Psychoway/                       # Monorepo (pnpm workspace)
 - Git / GitHub
 - Vercel (deploy frontend)
 - Render (deploy backend)
-- Jest + Testing Library
+- Vitest/Jest + Testing Library
 
 ---
 
@@ -248,7 +252,7 @@ git clone https://github.com/lui0slpk/Psychoway.git
 cd Psychoway
 ```
 
-2. **Instalar dependencias** (frontend en raíz + backend)
+2. **Instalar dependencias** (frontend + backend, resueltas por el workspace pnpm)
 
 ```bash
 pnpm install
@@ -312,10 +316,10 @@ Las contribuciones son bienvenidas. Por favor:
 ## 👥 Equipo
 
 - **Desarrolladores**:
-    - Jerónimo Gil Serna
-    - Luis Angel Zapata Reyes
-    - Anderson Clever Amaya Vallejo
-    - Kevin Castañeda Serna
+  - Jerónimo Gil Serna
+  - Luis Angel Zapata Reyes
+  - Anderson Clever Amaya Vallejo
+  - Kevin Castañeda Serna
 - **Institución**: SENA
 
 ---
@@ -340,5 +344,5 @@ Especial agradecimiento a:
 
 ---
 
-**Última actualización**: 2026-08-03
+**Última actualización**: 2026-08-31
 **Versión**: 0.5 | **Estado**: En Desarrollo ⚙️
