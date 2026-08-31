@@ -2,7 +2,7 @@
 	"framework": "create-react-app",
 	"installCommand": "pnpm install",
 	"buildCommand": "CI=false pnpm run build",
-	"outputDirectory": "build",
+	"outputDirectory": "Frontend/build",
 	"rewrites": [
 		{
 			"source": "/(.*)",
