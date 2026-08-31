@@ -1,5 +1,6 @@
 packages:
   - '.'
+  - 'Frontend'
   - 'Backend'
 
 allowBuilds:

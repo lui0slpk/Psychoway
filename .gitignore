@@ -32,7 +32,7 @@ node_modules/
 !**/.env.example
 
 # Compilación y Salidas (Production & Build Outputs)
-/build
+/Frontend/build
 /dist
 /out
 .next/
