@@ -3,7 +3,7 @@ FROM node:24-slim AS deps
 WORKDIR /app
 
 # workspace raíz para que pnpm resuelva con el lockfile correcto
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY Backend/package.json Backend/
 RUN corepack enable && pnpm install --filter ./Backend --frozen-lockfile
 
