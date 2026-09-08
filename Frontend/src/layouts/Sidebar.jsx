@@ -40,6 +40,12 @@ function Sidebar({ currentPage }) {
     ],
     psicologo: [
       {
+        id: "psi-dashboard",
+        label: "Dashboard",
+        icon: "fa-solid fa-chart-pie",
+        path: "/psi-dashboard",
+      },
+      {
         id: "psi-seguimiento",
         label: "Seguimiento\ndel Diario",
         icon: "fa-solid fa-chart-simple",
@@ -53,6 +59,12 @@ function Sidebar({ currentPage }) {
       },
     ],
     administrador: [
+      {
+        id: "dashboard",
+        label: "Dashboard",
+        icon: "fa-solid fa-chart-pie",
+        path: "/dashboard",
+      },
       {
         id: "gestion",
         label: "Gestión de\nUsuarios",

@@ -116,12 +116,13 @@ export async function getDiaryStats(period) {
  * @returns {Promise<Object>} Objeto con pending, history, meetingsPerWeek
  */
 export async function getPsychologistAgenda(idProfessional) {
-  const psychologist = await statisticsRepo.findPsychologistById(idProfessional);
-  if (!psychologist || psychologist.length === 0) {
+  const rows = await statisticsRepo.findPsychologistById(idProfessional);
+  if (!rows || rows.length === 0) {
     throw { status: 404, message: "Psicólogo no encontrado" };
   }
+  const psychologist = rows[0];
   const pending = await statisticsRepo.findPendingMeetings(idProfessional);
   const history = await statisticsRepo.findMeetingHistory(idProfessional);
   const meetingsPerWeek = await statisticsRepo.countMeetingsByWeek(idProfessional);
-  return { pending, history, meetingsPerWeek };
+  return { psychologist, pending, history, meetingsPerWeek };
 }
