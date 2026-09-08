@@ -15,5 +15,6 @@ export { default as psychobotApi } from "./psychobot.api";
 export { default as trackingApi } from "./tracking.api";
 export { default as notificationsApi } from "./notifications.api";
 export { default as psychologistsApi } from "./psychologists.api";
+export * as statisticsApi from "./statistics.api";
 export { request, ApiError } from "./client";
 export { API_URL, PUBLIC_URL } from "./config";
