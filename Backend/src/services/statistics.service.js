@@ -36,9 +36,10 @@ function generateDateSeries(startDate, endDate) {
 
 /**
  * Completa la serie con ceros donde no hay datos.
+ * Copia todos los campos numéricos del row original (count, asistio, no_asistio, pendiente, unread, etc.)
  * @param {Array} series - Datos crudos de la BD
  * @param {Array<string>} dateSeries - Serie completa de fechas
- * @returns {Array} Array con objetos { date, count }
+ * @returns {Array} Array con objetos { date, ...campos }
  */
 function zeroFill(series, dateSeries) {
   const map = new Map();
@@ -48,10 +49,29 @@ function zeroFill(series, dateSeries) {
       : String(row.date).split("T")[0];
     map.set(dateStr, row);
   }
-  return dateSeries.map((date) => ({
-    date,
-    count: map.has(date) ? Number(map.get(date).count) : 0,
-  }));
+  // Obtener todas las keys numéricas del primer row con datos (excluyendo 'date')
+  const sampleRow = series[0] || {};
+  const numericKeys = Object.keys(sampleRow).filter((k) => k !== "date");
+
+  return dateSeries.map((date) => {
+    const row = map.get(date);
+    if (!row) {
+      // Sin datos — todos los campos numéricos en 0
+      const zeroed = { date };
+      for (const key of numericKeys) {
+        zeroed[key] = 0;
+      }
+      return zeroed;
+    }
+    // Copiar todos los campos numéricos del row original
+    const result = { date };
+    for (const [key, value] of Object.entries(row)) {
+      if (key !== "date") {
+        result[key] = Number(value) || 0;
+      }
+    }
+    return result;
+  });
 }
 
 /**
