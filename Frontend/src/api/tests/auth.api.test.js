@@ -1,7 +1,7 @@
 /**
  * Strict TDD — Slice 2 (PR 2): behavior contract for src/api/auth.api.js.
  * Tests written FIRST (RED); the module in auth.api.js makes them green.
- * Parity reference: Backend/src/routes/auth.routes.js + the inline fetch
+ * Parity reference: Backend/src/routes/index.js + the inline fetch
  * calls previously living in Inicio.jsx / Registro.jsx / RecuperarPassword.jsx
  * / ResetPassword.jsx.
  */
