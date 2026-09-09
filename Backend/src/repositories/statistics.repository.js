@@ -60,6 +60,65 @@ export async function countDiaryEntriesByDay(startDate, endDate) {
 }
 
 /**
+ * Cuenta alertas por mes en un rango de fechas.
+ * @param {Date} startDate - Fecha inicio (inclusive)
+ * @param {Date} endDate - Fecha fin (exclusive)
+ * @returns {Promise<Array>} Filas con date (primer día del mes), count, unread
+ */
+export async function countAlertsByMonth(startDate, endDate) {
+  return query(
+    `SELECT DATE_TRUNC('month', timestamp)::date as date, COUNT(*) as count,
+            COUNT(*) FILTER (WHERE leido = FALSE) as unread
+     FROM psychologist_alerts
+     WHERE timestamp >= $1 AND timestamp < $2
+     GROUP BY DATE_TRUNC('month', timestamp)
+     ORDER BY date`,
+    [startDate, endDate]
+  );
+}
+
+/**
+ * Cuenta reuniones por mes en un rango de fechas, opcionalmente filtrado por profesional.
+ * @param {Date} startDate - Fecha inicio (inclusive)
+ * @param {Date} endDate - Fecha fin (exclusive)
+ * @param {number|null} professionalId - ID del profesional (null para todos)
+ * @returns {Promise<Array>} Filas con date, count, asistio, no_asistio, pendiente
+ */
+export async function countMeetingsByMonth(startDate, endDate, professionalId = null) {
+  return query(
+    `SELECT DATE_TRUNC('month', TO_DATE(m.day, 'YYYY-MM-DD'))::date as date, COUNT(*) as count,
+            COUNT(*) FILTER (WHERE m.asistencia = 'asistio') as asistio,
+            COUNT(*) FILTER (WHERE m.asistencia = 'no_asistio') as no_asistio,
+            COUNT(*) FILTER (WHERE m.asistencia = 'pendiente') as pendiente
+     FROM meetings_agenda m
+     WHERE TO_DATE(m.day, 'YYYY-MM-DD') >= $1 
+       AND TO_DATE(m.day, 'YYYY-MM-DD') < $2
+       AND ($3::int IS NULL OR m.id_professional = $3)
+     GROUP BY DATE_TRUNC('month', TO_DATE(m.day, 'YYYY-MM-DD'))
+     ORDER BY date`,
+    [startDate, endDate, professionalId]
+  );
+}
+
+/**
+ * Cuenta entradas de diario por mes en un rango de fechas.
+ * @param {Date} startDate - Fecha inicio (inclusive)
+ * @param {Date} endDate - Fecha fin (exclusive)
+ * @returns {Promise<Array>} Filas con date, count
+ */
+export async function countDiaryEntriesByMonth(startDate, endDate) {
+  return query(
+    `SELECT DATE_TRUNC('month', de.entry_date)::date as date, COUNT(*) as count
+     FROM diary_entries de
+     JOIN diary d ON de.id_diary = d.id_diary
+     WHERE de.entry_date >= $1 AND de.entry_date < $2
+     GROUP BY DATE_TRUNC('month', de.entry_date)
+     ORDER BY date`,
+    [startDate, endDate]
+  );
+}
+
+/**
  * Encuentra reuniones pendientes futuras para un psicólogo.
  * @param {number} professionalId - ID del profesional
  * @returns {Promise<Array>} Filas con detalles de reunión

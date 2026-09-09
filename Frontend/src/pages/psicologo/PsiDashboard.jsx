@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import MainLayout from "../../layouts/MainLayout";
 import { motion } from "framer-motion";
-import { BarChart3, Calendar } from "lucide-react";
+import { BarChart3, Calendar, TrendingUp } from "lucide-react";
 import PeriodFilter from "../../components/PeriodFilter";
 import BarChartCard from "../../components/BarChartCard";
 import * as statisticsApi from "../../api/statistics.api";
@@ -14,6 +14,10 @@ function PsiDashboard() {
   // Datos de cada sección
   const [alertsData, setAlertsData] = useState({ total: 0, unread: 0, series: [] });
   const [meetingsData, setMeetingsData] = useState({ total: 0, byAttendance: {}, series: [] });
+
+  // Datos de tendencia mensual (6 meses)
+  const [alerts6m, setAlerts6m] = useState({ total: 0, series: [] });
+  const [meetings6m, setMeetings6m] = useState({ total: 0, series: [] });
 
   // Cargar alertas cuando cambia el período
   useEffect(() => {
@@ -28,6 +32,16 @@ function PsiDashboard() {
       .then((data) => setMeetingsData(data))
       .catch((err) => console.error("Error cargando reuniones:", err));
   }, [meetingsPeriod]);
+
+  // Cargar datos de tendencia mensual (6 meses) al montar
+  useEffect(() => {
+    statisticsApi.getMonthlyStats("alerts")
+      .then((data) => setAlerts6m(data))
+      .catch((err) => console.error("Error cargando alertas mensuales:", err));
+    statisticsApi.getMonthlyStats("meetings")
+      .then((data) => setMeetings6m(data))
+      .catch((err) => console.error("Error cargando reuniones mensuales:", err));
+  }, []);
 
   // Variantes de animación
   const containerVariants = {
@@ -88,6 +102,39 @@ function PsiDashboard() {
                     { key: "pendiente", name: "Pendiente", color: "#ffc107" },
                   ]}
                 />
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Sección 3: Tendencia Mensual (6 Meses) */}
+          <motion.div className="col-12" variants={itemVariants}>
+            <div className="card border-0 shadow-sm rounded-4">
+              <div className="card-body">
+                <h5 className="mb-3 d-flex align-items-center gap-2">
+                  <TrendingUp size={20} className="text-secondary" /> Tendencia Mensual (6 Meses)
+                </h5>
+                <div className="row g-3">
+                  <div className="col-md-6">
+                    <BarChartCard
+                      title="Alertas por mes"
+                      data={alerts6m.series}
+                      dataKeys={[{ key: "count", name: "Alertas", color: "#dc3545" }]}
+                      xAxisKey="date"
+                    />
+                  </div>
+                  <div className="col-md-6">
+                    <BarChartCard
+                      title="Reuniones por mes"
+                      data={meetings6m.series}
+                      dataKeys={[
+                        { key: "asistio", name: "Asistió", color: "#198754" },
+                        { key: "no_asistio", name: "No Asistió", color: "#dc3545" },
+                        { key: "pendiente", name: "Pendiente", color: "#ffc107" },
+                      ]}
+                      xAxisKey="date"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           </motion.div>

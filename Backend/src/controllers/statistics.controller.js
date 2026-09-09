@@ -53,3 +53,19 @@ export async function getPsychologistAgenda(req, res, next) {
     next(error);
   }
 }
+
+/**
+ * Obtiene estadísticas mensuales agregadas (6 meses).
+ */
+export async function getMonthlyStats(req, res, next) {
+  try {
+    const type = req.params.type;
+    if (!["alerts", "meetings", "diary"].includes(type)) {
+      return res.status(400).json({ message: "Tipo inválido. Use 'alerts', 'meetings' o 'diary'." });
+    }
+    const result = await statisticsService.getMonthlyStats(type, req.userId, req.userRole);
+    res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+}

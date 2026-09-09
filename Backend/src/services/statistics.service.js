@@ -2,18 +2,26 @@ import * as statisticsRepo from "../repositories/statistics.repository.js";
 
 /**
  * Retorna el rango de fechas para un período dado.
- * @param {string} period - 'week' o 'month'
+ * @param {string} period - 'week', 'month' o '6months'
  * @returns {{ startDate: Date, endDate: Date }}
  */
 function getDateRange(period) {
   const endDate = new Date();
   const startDate = new Date();
   if (period === "week") {
+    // Últimos 7 días
     startDate.setDate(endDate.getDate() - 7);
   } else if (period === "month") {
-    startDate.setDate(endDate.getDate() - 30);
+    // Mes actual: desde el día 1 del mes
+    startDate.setDate(1);
+    startDate.setHours(0, 0, 0, 0);
+  } else if (period === "6months") {
+    // Últimos 6 meses: desde el primer día del mes hace 5 meses
+    startDate.setMonth(startDate.getMonth() - 5);
+    startDate.setDate(1);
+    startDate.setHours(0, 0, 0, 0);
   } else {
-    throw { status: 400, message: "Período inválido. Use 'week' o 'month'." };
+    throw { status: 400, message: "Período inválido. Use 'week', 'month' o '6months'." };
   }
   return { startDate, endDate };
 }
@@ -43,11 +51,15 @@ function generateDateSeries(startDate, endDate) {
  */
 function zeroFill(series, dateSeries) {
   const map = new Map();
+  // Detectar formato mensual (YYYY-MM) vs diario (YYYY-MM-DD)
+  const isMonthly = dateSeries.length > 0 && dateSeries[0].length === 7;
   for (const row of series) {
-    const dateStr = row.date instanceof Date
+    const rawDate = row.date instanceof Date
       ? row.date.toISOString().split("T")[0]
       : String(row.date).split("T")[0];
-    map.set(dateStr, row);
+    // Para series mensuales, extraer YYYY-MM; para diarias, usar YYYY-MM-DD
+    const dateKey = isMonthly ? rawDate.substring(0, 7) : rawDate;
+    map.set(dateKey, row);
   }
   // Obtener todas las keys numéricas del primer row con datos (excluyendo 'date')
   const sampleRow = series[0] || {};
@@ -128,6 +140,65 @@ export async function getDiaryStats(period) {
   const filled = zeroFill(series, dateSeries);
   const total = filled.reduce((sum, item) => sum + item.count, 0);
   return { period, total, series: filled };
+}
+
+/**
+ * Genera una serie de meses como strings 'YYYY-MM' para zero-fill mensual.
+ * @param {Date} startDate - Fecha inicio (inclusive)
+ * @param {Date} endDate - Fecha fin (exclusive)
+ * @returns {Array<string>} Array de meses en formato YYYY-MM
+ */
+function generateMonthSeries(startDate, endDate) {
+  const series = [];
+  const current = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+  while (current < endDate) {
+    const year = current.getFullYear();
+    const month = String(current.getMonth() + 1).padStart(2, "0");
+    series.push(`${year}-${month}`);
+    current.setMonth(current.getMonth() + 1);
+  }
+  return series;
+}
+
+/**
+ * Obtiene estadísticas mensuales agregadas para un período largo (6 meses).
+ * Retorna datos agrupados por mes en vez de por día.
+ * @param {string} type - 'alerts', 'meetings', o 'diary'
+ * @param {number} userId - ID del usuario
+ * @param {string} userRole - Rol del usuario
+ * @returns {Promise<Object>} Objeto con period, total, series[{date, count, ...}]
+ */
+export async function getMonthlyStats(type, userId, userRole) {
+  const { startDate, endDate } = getDateRange("6months");
+  let series;
+
+  if (type === "alerts") {
+    const raw = await statisticsRepo.countAlertsByMonth(startDate, endDate);
+    series = zeroFill(raw, generateMonthSeries(startDate, endDate));
+    const total = series.reduce((sum, item) => sum + item.count, 0);
+    const unread = raw.reduce((sum, row) => sum + Number(row.unread || 0), 0);
+    return { period: "6months", total, unread, series };
+  }
+
+  if (type === "meetings") {
+    const professionalId = userRole === "psicologo" ? userId : null;
+    const raw = await statisticsRepo.countMeetingsByMonth(startDate, endDate, professionalId);
+    series = zeroFill(raw, generateMonthSeries(startDate, endDate));
+    const total = series.reduce((sum, item) => sum + item.count, 0);
+    const asistio = raw.reduce((sum, row) => sum + Number(row.asistio || 0), 0);
+    const no_asistio = raw.reduce((sum, row) => sum + Number(row.no_asistio || 0), 0);
+    const pendiente = raw.reduce((sum, row) => sum + Number(row.pendiente || 0), 0);
+    return { period: "6months", total, byAttendance: { asistio, no_asistio, pendiente }, series };
+  }
+
+  if (type === "diary") {
+    const raw = await statisticsRepo.countDiaryEntriesByMonth(startDate, endDate);
+    series = zeroFill(raw, generateMonthSeries(startDate, endDate));
+    const total = series.reduce((sum, item) => sum + item.count, 0);
+    return { period: "6months", total, series };
+  }
+
+  throw { status: 400, message: "Tipo de estadística inválido." };
 }
 
 /**

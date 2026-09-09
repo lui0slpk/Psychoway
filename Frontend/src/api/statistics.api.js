@@ -26,6 +26,14 @@ export function getDiary(period = "week") {
 }
 
 /**
+ * Obtiene estadísticas mensuales agregadas (6 meses).
+ * @param {string} type - 'alerts', 'meetings', o 'diary'
+ */
+export function getMonthlyStats(type) {
+  return request(`${API_URL}/statistics/monthly/${type}`);
+}
+
+/**
  * Obtiene la agenda de un psicólogo.
  * @param {number} idProfessional - ID del profesional
  */
