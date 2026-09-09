@@ -12,6 +12,7 @@ import meetingsRoutes from "./meetings.routes.js";
 import psychobotRoutes from "./psychobot.routes.js";
 import psychologistRoutes from "./psychologist.routes.js";
 import notificationsRoutes from "./notifications.routes.js";
+import statisticsRoutes from "./statistics.routes.js";
 
 const router = Router();
 
@@ -56,5 +57,8 @@ router.use("/api/psychologist", psychologistRoutes);
 
 // Notifications
 router.use("/api/notifications", notificationsRoutes);
+
+// Estadísticas y dashboard
+router.use("/api/statistics", statisticsRoutes);
 
 export default router;

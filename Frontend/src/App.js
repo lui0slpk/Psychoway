@@ -31,6 +31,10 @@ import MiCuentaPsiPage from "./pages/psicologo/MiCuentaPsiPage";
 // Páginas de Administrador
 import GestionPage from "./pages/administrador/GestionPage";
 import GestionModPage from "./pages/administrador/GestionModPage";
+import Dashboard from "./pages/administrador/Dashboard";
+
+// Páginas de Psicólogo
+import PsiDashboard from "./pages/psicologo/PsiDashboard";
 
 import "./App.css";
 
@@ -98,6 +102,14 @@ function AnimatedRoutes() {
 
         {/* Rutas de Psicólogo */}
         <Route
+          path="/psi-dashboard"
+          element={
+            <ProtectedRoute allowedRoles="psicologo">
+              <PsiDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/psi-seguimiento"
           element={
             <ProtectedRoute allowedRoles="psicologo">
@@ -123,6 +135,14 @@ function AnimatedRoutes() {
         />
 
         {/* Rutas de Administrador */}
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute allowedRoles="administrador">
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/gestion"
           element={
