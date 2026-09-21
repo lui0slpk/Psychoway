@@ -17,11 +17,11 @@ const SESSION_USER_KEY = 'psychoway_user';
 beforeEach(() => {
 	window.location.hash = 'init';
 	localStorage.clear();
-	global.fetch = jest.fn();
+	global.fetch = vi.fn();
 });
 
 afterEach(() => {
-	jest.restoreAllMocks();
+	vi.restoreAllMocks();
 });
 
 function jsonResponse(body, status = 200) {
