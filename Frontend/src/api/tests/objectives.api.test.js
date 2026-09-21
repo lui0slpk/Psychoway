@@ -14,11 +14,11 @@ beforeEach(() => {
 	window.location.hash = 'init';
 	localStorage.clear();
 	localStorage.setItem(TOKEN_KEY, 'tok-slice3');
-	global.fetch = jest.fn();
+	global.fetch = vi.fn();
 });
 
 afterEach(() => {
-	jest.restoreAllMocks();
+	vi.restoreAllMocks();
 });
 
 function jsonResponse(body, status = 200) {
