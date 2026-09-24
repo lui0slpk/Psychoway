@@ -31,6 +31,7 @@ import MiCuentaPsiPage from "./pages/psicologo/MiCuentaPsiPage";
 // Páginas de Administrador
 import GestionPage from "./pages/administrador/GestionPage";
 import GestionModPage from "./pages/administrador/GestionModPage";
+import GestionJpaPage from "./pages/administrador/GestionJpaPage";
 import Dashboard from "./pages/administrador/Dashboard";
 
 // Páginas de Psicólogo
@@ -156,6 +157,14 @@ function AnimatedRoutes() {
           element={
             <ProtectedRoute allowedRoles="administrador">
               <GestionModPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/gestion-jpa"
+          element={
+            <ProtectedRoute allowedRoles="administrador">
+              <GestionJpaPage />
             </ProtectedRoute>
           }
         />
