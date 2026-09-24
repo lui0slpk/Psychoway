@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import MainLayout from "../../layouts/MainLayout";
 import { motion } from "framer-motion";
-import { Activity, Users } from "lucide-react";
+import { Activity, Users, UserPlus } from "lucide-react";
 import {
   jpaHealth,
   listJpaRoles,
@@ -16,6 +16,7 @@ import JpaUserFilters from "../../components/admin/gestion-jpa/JpaUserFilters";
 import JpaUsersTable from "../../components/admin/gestion-jpa/JpaUsersTable";
 import JpaPagination from "../../components/admin/gestion-jpa/JpaPagination";
 import JpaUserModal from "../../components/admin/gestion-jpa/JpaUserModal";
+import JpaUserCreateForm from "../../components/admin/gestion-jpa/JpaUserCreateForm";
 
 // Forma vacía de los filtros (document/email/names/lastNames exactos o
 // parciales según el contrato; idRol numérico). Los valores vacíos los
@@ -254,6 +255,18 @@ function GestionJpaPage() {
     }
   };
 
+  /**
+   * task 3.4 (creación) — el formulario es dueño del POST y de sus errores
+   * (createJpaUser → 201 → showSuccess viven en JpaUserCreateForm, igual
+   * que el PUT vive en el modal). Al notificar via onCreated el page
+   * RE-CONSULTA LA PÁGINA ACTUAL con los filtros vigentes para que el
+   * nuevo usuario sea visible en la tabla (design §Data Flow); el
+   * formulario se reinicia solo.
+   */
+  const handleUserCreated = () => {
+    fetchUsers({ page, size, filters: appliedFilters });
+  };
+
   const cV = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.5, staggerChildren: 0.1 } } };
   const iV = { hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0 } };
 
@@ -317,6 +330,22 @@ function GestionJpaPage() {
                 last={usersPage?.last ?? true}
                 onPage={handlePage}
               />
+            </div>
+          </motion.div>
+
+          <motion.div className="col-12 col-lg-8" variants={iV}>
+            <div className="card border-0 shadow-sm rounded-4 p-4 p-md-5">
+              <h5 className="mb-1 fs-5 d-flex align-items-center gap-2">
+                <UserPlus size={20} className="text-success" /> Crear usuario
+              </h5>
+              <p className="text-muted small mb-4">
+                Registra un nuevo usuario en el servicio JPA con el contrato
+                nativo del microservicio. El listado se actualiza con la página
+                actual al completar el registro.
+              </p>
+              {/* El formulario ejecuta el POST (201 → showSuccess) y notifica
+                  via onCreated; los roles llegan del catálogo ya cargado. */}
+              <JpaUserCreateForm roles={roles} onCreated={handleUserCreated} />
             </div>
           </motion.div>
         </div>
