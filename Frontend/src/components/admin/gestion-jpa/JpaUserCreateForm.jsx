@@ -10,13 +10,14 @@ const SUCCESS_GRADIENT = {
   border: "none",
 };
 
-// Tipos de documento del contrato JPA (API_REFERENCE.md — CreateGroup).
+// Tipos de documento del contrato JPA — enum REAL del microservicio:
+// CC/TI/CE/PP/RC/NIT ("PPT" NO existe; API_REFERENCE.md está desactualizado).
 const DOC_TYPE_LABELS = {
   CC: "Cédula de Ciudadanía",
   TI: "Tarjeta de Identidad",
   CE: "Cédula de Extranjería",
   PP: "Pasaporte",
-  PPT: "Permiso de Protección Temporal",
+  RC: "Registro Civil",
   NIT: "NIT",
 };
 
@@ -302,7 +303,7 @@ function JpaUserCreateForm({ roles, onCreated }) {
           onChange={(e) => handleChange("docType", e.target.value)}
         >
           <option value="">Seleccione</option>
-          {/* Enum exacto del contrato: CC/TI/CE/PP/PPT/NIT (sin "PA"). */}
+          {/* Enum exacto del servicio: CC/TI/CE/PP/RC/NIT (PPT no existe). */}
           {Object.entries(DOC_TYPE_LABELS).map(([code, label]) => (
             <option key={code} value={code}>
               {code} — {label}

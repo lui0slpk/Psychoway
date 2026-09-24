@@ -10,13 +10,14 @@ const SUCCESS_GRADIENT = {
   border: "none",
 };
 
-// Tipos de documento del contrato JPA (API_REFERENCE.md — sin "PA").
+// Tipos de documento del contrato JPA — enum REAL del microservicio:
+// CC/TI/CE/PP/RC/NIT ("PPT" NO existe; API_REFERENCE.md está desactualizado).
 const DOC_TYPE_LABELS = {
   CC: "Cédula de Ciudadanía",
   TI: "Tarjeta de Identidad",
   CE: "Cédula de Extranjería",
   PP: "Pasaporte",
-  PPT: "Permiso de Protección Temporal",
+  RC: "Registro Civil",
   NIT: "NIT",
 };
 

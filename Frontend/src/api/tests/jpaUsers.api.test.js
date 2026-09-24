@@ -1,6 +1,6 @@
 /**
- * Comportamiento del módulo JPA — contrato contra API_REFERENCE.md
- * (microservicio mysqlwithjpa, puerto 8080):
+ * Comportamiento del módulo JPA — contrato contra el microservicio
+ * mysqlwithjpa (puerto 8080), VERIFICADO contra su código fuente:
  *   GET /actuator/health (público, SIN Authorization, sin rate limit),
  *   GET /api/roles, GET /api/users (paginado 0-indexed + filtros),
  *   POST /api/users, PUT /api/users/{id}, DELETE /api/users/{id}.
@@ -10,6 +10,11 @@
  * - listJpaUsers recibe páginas 1-indexed (UI) y convierte a 0-indexed (API)
  *   en el ÚNICO punto de conversión del módulo; `size` siempre explícito.
  * - Los filtros vacíos/undefined/null no viajan en el query string.
+ * - WIRE REAL: las RESPUESTAS viajan en snake_case (Jackson @JsonProperty;
+ *   API_REFERENCE.md desactualizado) y los REQUESTS en camelCase —
+ *   jpaUsers.api.js normaliza roles, PageResponse y UserResponse
+ *   (snake→camel) en el único punto, y TOLERA payloads ya camelCase
+ *   (la normalización es un no-op para ellos).
  * - mapJpaError mapea la envolvente de error por status a { title, text,
  *   fieldErrors? } en español (400 details[], 409, 403, 404, 429, red/5xx).
  *
@@ -241,6 +246,149 @@ describe('createJpaUser / updateJpaUser / deleteJpaUser (protegidos)', () => {
 		expect(options.method).toBe('DELETE');
 		expect(options.headers.Authorization).toBe('Bearer tok-jpa');
 		expect(options.body).toBeUndefined();
+	});
+});
+
+describe('normalización de respuestas snake_case → camelCase (wire real)', () => {
+	// UserResponse real del wire: snake_case salvo document/names/email
+	// (viajan con ese nombre exacto). NUNCA incluye password.
+	const wireUser = {
+		id_user: 10,
+		document: '1234567890',
+		doc_type: 'CC',
+		names: 'Juan Carlos',
+		last_names: 'Pérez Gómez',
+		birth_date: '2000-01-15',
+		email: 'juan@email.com',
+		contact_number: '3001234567',
+		landline_number: '6041234567',
+		training_program: 'Análisis y Desarrollo de Software',
+		ficha_number: '255678',
+		id_rol: 2,
+		nombre_rol: 'Psicologo',
+		profile_photo: 'https://ejemplo.com/foto.jpg',
+		last_update: '2026-09-20T10:00:00',
+	};
+
+	// Lo mismo, en el camelCase que consumen los componentes.
+	const uiUser = {
+		idUser: 10,
+		document: '1234567890',
+		docType: 'CC',
+		names: 'Juan Carlos',
+		lastNames: 'Pérez Gómez',
+		birthDate: '2000-01-15',
+		email: 'juan@email.com',
+		contactNumber: '3001234567',
+		landlineNumber: '6041234567',
+		trainingProgram: 'Análisis y Desarrollo de Software',
+		fichaNumber: '255678',
+		idRol: 2,
+		nombreRol: 'Psicologo',
+		profilePhoto: 'https://ejemplo.com/foto.jpg',
+		lastUpdate: '2026-09-20T10:00:00',
+	};
+
+	it('listJpaRoles traduce { id_rol, nombre_rol } → { idRol, nombreRol }', async () => {
+		global.fetch.mockResolvedValue(
+			jsonResponse([
+				{ id_rol: 1, nombre_rol: 'Aprendiz' },
+				{ id_rol: 3, nombre_rol: 'Administrador' },
+			]),
+		);
+
+		const data = await listJpaRoles();
+
+		expect(data).toEqual([
+			{ idRol: 1, nombreRol: 'Aprendiz' },
+			{ idRol: 3, nombreRol: 'Administrador' },
+		]);
+	});
+
+	it('listJpaUsers normaliza total_elements/total_pages y cada fila de content', async () => {
+		global.fetch.mockResolvedValue(
+			jsonResponse({
+				content: [wireUser],
+				page: 0,
+				size: 5,
+				total_elements: 12,
+				total_pages: 3,
+				first: true,
+				last: false,
+			}),
+		);
+
+		const data = await listJpaUsers({ page: 1 });
+
+		expect(data.totalElements).toBe(12);
+		expect(data.totalPages).toBe(3);
+		// page/size/first/last ya viajan con esos nombres: pasan intactos.
+		expect(data.page).toBe(0);
+		expect(data.size).toBe(5);
+		expect(data.first).toBe(true);
+		expect(data.last).toBe(false);
+		expect(data.content).toEqual([uiUser]);
+	});
+
+	it('listJpaUsers tolera una respuesta que ya llega en camelCase', async () => {
+		const camelPage = {
+			content: [uiUser],
+			page: 1,
+			size: 5,
+			totalElements: 12,
+			totalPages: 3,
+			first: false,
+			last: false,
+		};
+		global.fetch.mockResolvedValue(jsonResponse(camelPage));
+
+		const data = await listJpaUsers({ page: 2 });
+
+		// Tolerancia defensiva: el payload camelCase pasa sin duplicar
+		// ni perder claves.
+		expect(data).toEqual(camelPage);
+	});
+
+	it('createJpaUser normaliza el UserResponse del 201 (snake → camel)', async () => {
+		global.fetch.mockResolvedValue(jsonResponse(wireUser, 201));
+
+		const data = await createJpaUser({
+			document: '1234567890',
+			docType: 'CC',
+			names: 'Juan Carlos',
+			lastNames: 'Pérez Gómez',
+			birthDate: '2000-01-15',
+			email: 'juan@email.com',
+			password: 'secret123',
+			idRol: 2,
+		});
+
+		// El REQUEST sigue camelCase tal cual (verificado en la aserción del
+		// body en el test de createJpaUser del bloque anterior); SOLO la
+		// respuesta del 201 se normaliza.
+		expect(data).toEqual(uiUser);
+	});
+
+	it('createJpaUser tolera una respuesta 201 que ya llega en camelCase', async () => {
+		global.fetch.mockResolvedValue(jsonResponse(uiUser, 201));
+
+		const data = await createJpaUser({ document: '1234567890' });
+
+		expect(data).toEqual(uiUser);
+	});
+
+	it('updateJpaUser normaliza el UserResponse del 200 (snake → camel) sin tocar el request', async () => {
+		global.fetch.mockResolvedValue(
+			jsonResponse({ ...wireUser, names: 'Juan Camilo' }),
+		);
+
+		const data = await updateJpaUser(10, { names: 'Juan Camilo' });
+
+		// El PUT viaja camelCase tal cual (el servidor vincula esas
+		// propiedades Java); la respuesta sí se normaliza.
+		const [, options] = global.fetch.mock.calls[0];
+		expect(options.body).toBe(JSON.stringify({ names: 'Juan Camilo' }));
+		expect(data).toEqual({ ...uiUser, names: 'Juan Camilo' });
 	});
 });
 
