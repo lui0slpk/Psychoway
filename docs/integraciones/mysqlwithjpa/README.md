@@ -2,16 +2,16 @@
 
 El módulo **Gestión JPA** de Psychoway (ruta `/gestion-jpa`, exclusiva del rol `administrador`) administra los usuarios del microservicio externo **mysqlwithjpa** (Spring Boot + JPA, puerto 8080). Este documento describe el contrato técnico que consume el módulo: endpoints autorizados, autenticación, manejo de errores y configuración por entorno.
 
-La referencia completa del servicio está en [`API_REFERENCE.md`](../../API_REFERENCE.md) (fuente de verdad del contrato). La guía paso a paso para verificar la integración en ejecución está en [`manual-integracion.md`](manual-integracion.md).
+La referencia completa del servicio está en [`API_REFERENCE.md`](../../API_REFERENCE.md). **Advertencia (verificado contra el código fuente del microservicio): `API_REFERENCE.md` está desactualizado en tres puntos — la serialización de las respuestas (documenta camelCase; el wire real es snake_case), el enum de `docType` (documenta `PPT`, que no existe; el enum real incluye `RC`) y los límites de `fichaNumber`/tamaño de página.** El contrato real está en la sección «Contrato de serialización de respuestas» de este documento. La guía paso a paso para verificar la integración en ejecución está en [`manual-integracion.md`](manual-integracion.md).
 
 ## Ruta rápida
 
 | Aspecto | Valor |
 |---|---|
 | Página | `Frontend/src/pages/administrador/GestionJpaPage.jsx` (ruta `/gestion-jpa`, protegida por rol `administrador`) |
-| Capa API | `Frontend/src/api/jpaUsers.api.js` sobre el cliente HTTP compartido `Frontend/src/api/client.js` |
+| Capa API | `Frontend/src/api/jpaUsers.api.js` sobre el cliente HTTP compartido `Frontend/src/api/client.js` — único punto de normalización snake→camel de las respuestas |
 | URL base | `JPA_API_BASE` en `Frontend/src/api/config.js` → `process.env.REACT_APP_JPA_API_URL \|\| "http://localhost:8080"` |
-| Pruebas | `Frontend/src/api/tests/jpaUsers.api.test.js` (Vitest, 21 tests del contrato de transporte) |
+| Pruebas | `Frontend/src/api/tests/jpaUsers.api.test.js` (Vitest, 27 tests del contrato de transporte y de la normalización) |
 
 ## Conjunto de endpoints autorizados
 
@@ -27,6 +27,62 @@ El módulo consume EXCLUSIVAMENTE este conjunto de endpoints. Ningún otro endpo
 | `/api/users/{id}` | DELETE | Requerida (`ROLE_ADMINISTRADOR`) | Eliminación con confirmación previa |
 
 > **Exclusión deliberada**: `GET /api/users/{id}` NO se consume. Los datos de cada fila provienen de la página ya cargada del listado; ninguna acción (detalle, edición, eliminación) realiza una consulta por usuario.
+
+## Contrato de serialización de respuestas (snake_case en el wire)
+
+**Verificado contra el código fuente del microservicio**: las RESPUESTAS se serializan en **snake_case** (anotaciones Jackson `@JsonProperty`). `API_REFERENCE.md` documenta camelCase en este punto — está desactualizado. La traducción snake_case → camelCase vive **exclusivamente** en `Frontend/src/api/jpaUsers.api.js` (capa anticorrupción): los componentes del módulo consumen camelCase y ningún componente traduce nombres de campo. La normalización es tolerante: una respuesta que ya llegue en camelCase pasa intacta.
+
+> Los REQUESTS son la excepción: los cuerpos de POST/PUT y los query params viajan en **camelCase** (`docType`, `lastNames`, `birthDate`, `idRol`, ...) porque el servidor vincula exactamente esas propiedades Java. El frontend NO los traduce ni los modifica.
+
+### `GET /api/roles` — catálogo
+
+```json
+[{ "id_rol": 1, "nombre_rol": "Aprendiz" }]
+```
+
+Traducción en el módulo: `[{ idRol, nombreRol }]` para poblar los selects de filtro y formularios.
+
+### `GET /api/users` — PageResponse
+
+| Wire | Traducción en la UI | Nota |
+|---|---|---|
+| `content` | `content` | Cada fila es un UserResponse (ver tabla siguiente) y se normaliza individualmente |
+| `page` | `page` | 0-indexado |
+| `size` | `size` | Default del servicio: **10** |
+| `total_elements` | `totalElements` | |
+| `total_pages` | `totalPages` | |
+| `first` | `first` | |
+| `last` | `last` | |
+
+### UserResponse — cuerpo del 201 de `POST`, del 200 de `PUT` y filas del listado
+
+| Wire | Traducción en la UI | Nota |
+|---|---|---|
+| `id_user` | `idUser` | |
+| `document` | `document` | Viaja con ese nombre exacto |
+| `doc_type` | `docType` | Enum real: **CC, TI, CE, PP, RC, NIT** (`PPT` no existe; RC = Registro Civil) |
+| `names` | `names` | Viaja con ese nombre exacto |
+| `last_names` | `lastNames` | |
+| `birth_date` | `birthDate` | ISO `YYYY-MM-DD` |
+| `email` | `email` | Viaja con ese nombre exacto |
+| `contact_number` | `contactNumber` | Opcional |
+| `landline_number` | `landlineNumber` | Opcional |
+| `training_program` | `trainingProgram` | Opcional |
+| `ficha_number` | `fichaNumber` | Opcional; máximo **50** caracteres (`API_REFERENCE.md` dice 20 — desactualizado) |
+| `id_rol` | `idRol` | |
+| `nombre_rol` | `nombreRol` | |
+| `profile_photo` | `profilePhoto` | Opcional (URL) |
+| `last_update` | `lastUpdate` | |
+
+La respuesta **nunca incluye la contraseña**.
+
+### Cuerpos de REQUEST (POST/PUT) y query params — camelCase, SIN traducción
+
+| Campo | Nota |
+|---|---|
+| `document`, `docType`, `names`, `lastNames`, `birthDate`, `email`, `password`, `idRol` | Requeridos del CreateGroup (POST); en PUT viaja solo el diff de campos cambiados |
+| `contactNumber`, `landlineNumber`, `trainingProgram`, `fichaNumber`, `profilePhoto` | Opcionales; se omiten del body cuando van vacíos |
+| Query params del GET | `document`, `email`, `names`, `lastNames`, `idRol`, `page` (0-indexado), `size` |
 
 ## Autenticación con JWT compartido
 
@@ -85,8 +141,9 @@ El microservicio limita a **100 peticiones por minuto por IP** (ventana móvil, 
 
 | Decisión | Detalle |
 |---|---|
+| Normalización de respuestas | El wire serializa las respuestas en snake_case; `jpaUsers.api.js` traduce snake→camel en el ÚNICO punto (roles, PageResponse y UserResponse, incluidos los cuerpos 201/200 de create/update); los componentes nunca ven claves snake |
 | Paginación 0↔1 | La API es 0-indexada y la interfaz muestra páginas 1-indexadas; la conversión (`page - 1`) vive únicamente en `jpaUsers.api.js` |
-| Tamaño explícito | El listado siempre envía `size` explícitamente (por defecto `5`; opciones 5/10/20/50). El default de la API (`20`) no se usa implícitamente |
+| Tamaño explícito | El listado siempre envía `size` explícitamente (por defecto `5`; opciones 5/10/20/50). El default del servicio (`10`) no se usa implícitamente |
 | Edición por diferencia | El PUT envía solo los campos modificados; `password` solo se envía cuando se llena; los campos opcionales vacíos se omiten |
 | Eliminación local | Tras un 204 exitoso la fila se remueve localmente sin recargar la página; si la página queda vacía y no es la primera, retrocede una página y reconsulta |
 | Retroalimentación | Todos los diálogos (éxito, error, advertencia, confirmación) usan exclusivamente el wrapper SweetAlert2 `Frontend/src/utils/alerts.js` |
@@ -112,7 +169,7 @@ export const JPA_API_BASE =
 | Archivo | Rol |
 |---|---|
 | `Frontend/src/api/config.js` | Declara `JPA_API_BASE` (única constante de configuración del módulo) |
-| `Frontend/src/api/jpaUsers.api.js` | Transporte: `jpaHealth`, `listJpaRoles`, `listJpaUsers`, `createJpaUser`, `updateJpaUser`, `deleteJpaUser`, `mapJpaError` |
+| `Frontend/src/api/jpaUsers.api.js` | Transporte: `jpaHealth`, `listJpaRoles`, `listJpaUsers`, `createJpaUser`, `updateJpaUser`, `deleteJpaUser`, `mapJpaError` + capa anticorrupción snake→camel (único punto de normalización) |
 | `Frontend/src/api/tests/jpaUsers.api.test.js` | Cobertura Vitest del contrato de transporte (`vi.*`) |
 | `Frontend/src/pages/administrador/GestionJpaPage.jsx` | Orquestador: estado de servidor/UI, tres consultas de entrada, flujos CRUD |
 | `Frontend/src/components/admin/gestion-jpa/` | Secciones presentacionales: `JpaHealthSection`, `JpaUserFilters`, `JpaUsersTable`, `JpaPagination`, `JpaUserCreateForm`, `JpaUserModal` |

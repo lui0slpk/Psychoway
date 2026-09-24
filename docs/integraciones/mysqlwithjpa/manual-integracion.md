@@ -4,7 +4,7 @@
 
 **Manual de Integración — Módulo Gestión JPA**
 
-**Versión:** 1.0
+**Versión:** 1.1
 
 **Fecha:** Septiembre de 2026
 
@@ -17,6 +17,7 @@
 | Versión | Fecha | Descripción | Responsable |
 | --- | --- | --- | --- |
 | 1.0 | Septiembre de 2026 | Elaboración inicial del Manual de Integración del módulo Gestión JPA | Equipo Psychoway |
+| 1.1 | Septiembre de 2026 | Corrección del contrato de datos tras verificación en vivo: respuestas del microservicio en snake_case (normalización en la capa API), enum de tipo de documento real (CC/TI/CE/PP/RC/NIT) y límites corregidos (`fichaNumber` máx 50, tamaño de página por defecto 10) | Equipo Psychoway |
 
 ---
 
@@ -59,7 +60,9 @@ El módulo Gestión JPA:
 - Administra los usuarios del microservicio mysqlwithjpa; NO reemplaza ni modifica la gestión de usuarios existente de Psychoway (`/gestion`, `/gestion-mod`), que sigue operando contra el backend Express.
 - Consume únicamente el conjunto autorizado de endpoints: `GET /actuator/health`, `GET /api/roles`, `GET/POST /api/users` y `PUT/DELETE /api/users/{id}`.
 
-La referencia técnica del contrato está en el [`README.md`](README.md) de este directorio y en [`API_REFERENCE.md`](../../API_REFERENCE.md).
+La referencia técnica del contrato real está en el [`README.md`](README.md) de este directorio (verificado contra el código fuente del microservicio); [`API_REFERENCE.md`](../../API_REFERENCE.md) permanece como referencia general con las salvedades de la nota siguiente.
+
+**Nota sobre el contrato de datos (verificado contra el código fuente del microservicio):** las **respuestas** del microservicio viajan en `snake_case` (`id_user`, `doc_type`, `total_elements`, ...) mientras que los **request** (cuerpos de POST/PUT y query params) viajan en `camelCase`. `API_REFERENCE.md` está desactualizado en este punto (documenta respuestas en camelCase) y en el enum de `docType` (incluye un `PPT` que no existe en el servicio; el enum real es CC/TI/CE/PP/RC/NIT). El frontend normaliza las respuestas snake_case → camelCase **exclusivamente** en `Frontend/src/api/jpaUsers.api.js` (capa anticorrupción); ningún componente traduce nombres de campo. El contrato real de respuestas está documentado en la sección «Contrato de serialización de respuestas» del [`README.md`](README.md).
 
 # 3. TÉRMINOS Y DEFINICIONES
 
@@ -71,6 +74,7 @@ La referencia técnica del contrato está en el [`README.md`](README.md) de este
 | **Health check** | Endpoint público (`/actuator/health`) que reporta el estado del microservicio y de sus dependencias (Supabase y MongoDB). |
 | **Rate limit** | Límite de peticiones del microservicio: 100 solicitudes por minuto por IP. |
 | **Paginación 0-indexada** | Convención de la API: la primera página es `page=0`. La interfaz la presenta como página 1 y la conversión ocurre en la capa API. |
+| **snake_case / camelCase** | Convenciones de nombres del wire: las RESPUESTAS del microservicio viajan en snake_case (`total_elements`, `id_user`); los REQUEST viajan en camelCase (`lastNames`, `idRol`). El frontend traduce las respuestas a camelCase en la capa API (`jpaUsers.api.js`). |
 | **CORS** | Mecanismo que autoriza al navegador a llamar el microservicio desde orígenes permitidos (`http://localhost:3000`, `https://psychoway.vercel.app`). |
 | **`REACT_APP_JPA_API_URL`** | Variable de entorno del frontend que define la URL base del microservicio. |
 
@@ -157,7 +161,7 @@ Inicie el frontend (`pnpm --dir Frontend start`) con el microservicio y el backe
 
 **Paso 4.** Navegue a la página 2 con los controles de paginación.
 
-**Resultado esperado:** cada cambio de tamaño reemite la consulta con el nuevo `size` (página reiniciada a la primera); la página "2" de la interfaz envía `page=1`. En la última página, el botón de avance queda deshabilitado. En todas las peticiones viaja el header `Authorization: Bearer <token>`.
+**Resultado esperado:** cada cambio de tamaño reemite la consulta con el nuevo `size` (página reiniciada a la primera); la página "2" de la interfaz envía `page=1`. En la última página, el botón de avance queda deshabilitado. En todas las peticiones viaja el header `Authorization: Bearer <token>`. La respuesta del listado llega en `snake_case` (`total_elements`, `total_pages`, `id_user`, ...) — es el formato real del wire; la interfaz la consume normalizada (`totalElements`, `totalPages`, ...) gracias a la traducción de la capa API.
 
 ## 6.4. Verificar los filtros de búsqueda
 
@@ -173,9 +177,9 @@ Inicie el frontend (`pnpm --dir Frontend start`) con el microservicio y el backe
 
 ## 6.5. Crear un usuario
 
-**Paso 1.** Ubique el formulario de creación y diligencie los campos obligatorios: documento, tipo de documento (CC, TI, CE, PP, PPT o NIT), nombres, apellidos, fecha de nacimiento (fecha pasada), correo, contraseña (mínimo 8 caracteres) y rol.
+**Paso 1.** Ubique el formulario de creación y diligencie los campos obligatorios: documento, tipo de documento (CC, TI, CE, PP, RC o NIT), nombres, apellidos, fecha de nacimiento (fecha pasada), correo, contraseña (mínimo 8 caracteres) y rol.
 
-**Paso 2.** Diligencie opcionalmente número de contacto, teléfono fijo, programa de formación, número de ficha o foto de perfil.
+**Paso 2.** Diligencie opcionalmente número de contacto, teléfono fijo, programa de formación, número de ficha (máximo 50 caracteres) o foto de perfil.
 
 **Paso 3.** Pulse el botón de guardar.
 
@@ -240,7 +244,7 @@ Por la misma razón: no existe sondeo automático. La salud se consulta al entra
 
 ### ¿Cuál es la diferencia entre Gestión y Gestión JPA?
 
-**Gestión** administra los usuarios de Psychoway contra el backend Express. **Gestión JPA** administra los usuarios del microservicio mysqlwithjpa. Son módulos independientes; el contrato del microservicio usa nombres de campo en inglés y reglas propias (p. ej. contraseña mínima de 8 caracteres, tipo de documento con valores CC/TI/CE/PP/PPT/NIT, `idRol` numérico).
+**Gestión** administra los usuarios de Psychoway contra el backend Express. **Gestión JPA** administra los usuarios del microservicio mysqlwithjpa. Son módulos independientes; el contrato del microservicio usa nombres de campo en inglés y reglas propias (p. ej. contraseña mínima de 8 caracteres, tipo de documento con valores CC/TI/CE/PP/RC/NIT, `idRol` numérico).
 
 ### ¿Puedo usar el módulo en producción sin configurar nada?
 
@@ -293,6 +297,6 @@ No. En todo despliegue que no sea desarrollo debe definirse `REACT_APP_JPA_API_U
 
 # 9. REFERENCIAS
 
-- [`API_REFERENCE.md`](../../API_REFERENCE.md) — referencia completa del contrato del microservicio mysqlwithjpa (fuente de verdad).
-- [`README.md`](README.md) — documento técnico de la integración: endpoints autorizados, autenticación, contrato de errores y configuración.
+- [`API_REFERENCE.md`](../../API_REFERENCE.md) — referencia del contrato del microservicio mysqlwithjpa. **Advertencia: desactualizado en la serialización de respuestas (documenta camelCase; el wire real es snake_case), en el enum de `docType` (incluye un `PPT` que no existe) y en los límites de `fichaNumber`/tamaño de página.** El contrato real está en el [`README.md`](README.md).
+- [`README.md`](README.md) — documento técnico de la integración: endpoints autorizados, contrato de serialización de respuestas, autenticación, contrato de errores y configuración.
 - `openspec/changes/jpa-user-management/` — especificación, diseño y tareas del cambio que originó el módulo.
