@@ -20,4 +20,12 @@ export const API_URL = `${API_BASE}/api`;
  */
 export const PUBLIC_URL = API_BASE;
 
+/**
+ * Base URL del microservicio externo mysqlwithjpa (Spring Boot + JPA).
+ * Mismo patrón que API_BASE: sobrescribible con REACT_APP_JPA_API_URL
+ * para despliegues que no sean de desarrollo (dev: localhost:8080).
+ */
+export const JPA_API_BASE =
+  process.env.REACT_APP_JPA_API_URL || "http://localhost:8080";
+
 export default API_BASE;
