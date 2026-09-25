@@ -71,6 +71,12 @@ function Sidebar({ currentPage }) {
         icon: "fa-solid fa-chart-simple",
         path: "/gestion",
       },
+      {
+        id: "gestion-jpa",
+        label: "Gestión JPA",
+        icon: "fa-solid fa-database",
+        path: "/gestion-jpa",
+      },
     ],
   };
 
